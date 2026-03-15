@@ -1,0 +1,726 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "11698401170136401889"
+    }
+  },
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "defaultValue": "prod",
+      "allowedValues": [
+        "dev",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment name (dev / prod)"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for all resources"
+      }
+    },
+    "appName": {
+      "type": "string",
+      "defaultValue": "padel",
+      "minLength": 3,
+      "maxLength": 12,
+      "metadata": {
+        "description": "Base name used for all resources, e.g. \"padel\""
+      }
+    },
+    "dbAdminUser": {
+      "type": "string",
+      "defaultValue": "padeladmin",
+      "metadata": {
+        "description": "PostgreSQL admin username"
+      }
+    },
+    "dbAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "PostgreSQL admin password"
+      }
+    },
+    "nextAuthSecret": {
+      "type": "securestring",
+      "metadata": {
+        "description": "NextAuth secret (generate with: openssl rand -base64 32)"
+      }
+    },
+    "adminEmail": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin email for the app login"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password for the app login"
+      }
+    }
+  },
+  "variables": {
+    "suffix": "[format('{0}-{1}', parameters('appName'), parameters('environment'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "acr-deploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[replace(format('acr{0}', variables('suffix')), '-', '')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "10613473586923560678"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Registry name — lowercase alphanumeric, 5-50 chars"
+              }
+            },
+            "location": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Basic"
+              },
+              "properties": {
+                "adminUserEnabled": true
+              }
+            }
+          ],
+          "outputs": {
+            "loginServer": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('name')), '2023-07-01').loginServer]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "postgres-deploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "serverName": {
+            "value": "[format('psql-{0}', variables('suffix'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "adminUser": {
+            "value": "[parameters('dbAdminUser')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('dbAdminPassword')]"
+          },
+          "databaseName": {
+            "value": "padel_tracker"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "17169467175212671882"
+            }
+          },
+          "parameters": {
+            "serverName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "adminUser": {
+              "type": "string"
+            },
+            "adminPassword": {
+              "type": "securestring"
+            },
+            "databaseName": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string",
+              "allowedValues": [
+                "dev",
+                "prod"
+              ]
+            }
+          },
+          "variables": {
+            "skuName": "[if(equals(parameters('environment'), 'prod'), 'Standard_B1ms', 'Standard_B1ms')]",
+            "storageSizeGB": 32
+          },
+          "resources": [
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "apiVersion": "2023-06-01-preview",
+              "name": "[parameters('serverName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[variables('skuName')]",
+                "tier": "Burstable"
+              },
+              "properties": {
+                "administratorLogin": "[parameters('adminUser')]",
+                "administratorLoginPassword": "[parameters('adminPassword')]",
+                "version": "16",
+                "storage": {
+                  "storageSizeGB": "[variables('storageSizeGB')]"
+                },
+                "backup": {
+                  "backupRetentionDays": 7,
+                  "geoRedundantBackup": "Disabled"
+                },
+                "highAvailability": {
+                  "mode": "Disabled"
+                },
+                "authConfig": {
+                  "activeDirectoryAuth": "Disabled",
+                  "passwordAuth": "Enabled"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
+              "apiVersion": "2023-06-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'AllowAzureServices')]",
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+              "apiVersion": "2023-06-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), parameters('databaseName'))]",
+              "properties": {
+                "charset": "UTF8",
+                "collation": "en_US.utf8"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "fqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName')), '2023-06-01-preview').fullyQualifiedDomainName]"
+            },
+            "serverName": {
+              "type": "string",
+              "value": "[parameters('serverName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "appservice-deploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appName": {
+            "value": "[format('app-{0}', variables('suffix'))]"
+          },
+          "planName": {
+            "value": "[format('plan-{0}', variables('suffix'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "acrLoginServer": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'acr-deploy'), '2025-04-01').outputs.loginServer.value]"
+          },
+          "acrName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'acr-deploy'), '2025-04-01').outputs.name.value]"
+          },
+          "kvRefDbUrl": {
+            "value": "pending"
+          },
+          "kvRefNextAuth": {
+            "value": "pending"
+          },
+          "kvRefAdminEmail": {
+            "value": "pending"
+          },
+          "kvRefAdminPass": {
+            "value": "pending"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "4881767277372712725"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string"
+            },
+            "planName": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "acrLoginServer": {
+              "type": "string"
+            },
+            "acrName": {
+              "type": "string"
+            },
+            "kvRefDbUrl": {
+              "type": "string"
+            },
+            "kvRefNextAuth": {
+              "type": "string"
+            },
+            "kvRefAdminEmail": {
+              "type": "string"
+            },
+            "kvRefAdminPass": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "skuName": "B1",
+            "skuTier": "Basic"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2023-01-01",
+              "name": "[parameters('planName')]",
+              "location": "[parameters('location')]",
+              "kind": "linux",
+              "sku": {
+                "name": "[variables('skuName')]",
+                "tier": "[variables('skuTier')]"
+              },
+              "properties": {
+                "reserved": true
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-01-01",
+              "name": "[parameters('appName')]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('planName'))]",
+                "siteConfig": {
+                  "linuxFxVersion": "[format('DOCKER|{0}/padel-tracker:latest', parameters('acrLoginServer'))]",
+                  "alwaysOn": true,
+                  "appSettings": [
+                    {
+                      "name": "DOCKER_REGISTRY_SERVER_URL",
+                      "value": "[format('https://{0}', parameters('acrLoginServer'))]"
+                    },
+                    {
+                      "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+                      "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').username]"
+                    },
+                    {
+                      "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+                      "value": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').passwords[0].value]"
+                    },
+                    {
+                      "name": "DATABASE_URL",
+                      "value": "[parameters('kvRefDbUrl')]"
+                    },
+                    {
+                      "name": "NEXTAUTH_SECRET",
+                      "value": "[parameters('kvRefNextAuth')]"
+                    },
+                    {
+                      "name": "NEXTAUTH_URL",
+                      "value": "[format('https://{0}.azurewebsites.net', parameters('appName'))]"
+                    },
+                    {
+                      "name": "ADMIN_EMAIL",
+                      "value": "[parameters('kvRefAdminEmail')]"
+                    },
+                    {
+                      "name": "ADMIN_PASSWORD",
+                      "value": "[parameters('kvRefAdminPass')]"
+                    },
+                    {
+                      "name": "NODE_ENV",
+                      "value": "production"
+                    },
+                    {
+                      "name": "WEBSITES_PORT",
+                      "value": "3000"
+                    }
+                  ],
+                  "httpLoggingEnabled": true,
+                  "logsDirectorySizeLimit": 35
+                },
+                "httpsOnly": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', parameters('planName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "appUrl": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('appName')), '2023-01-01').defaultHostName)]"
+            },
+            "appName": {
+              "type": "string",
+              "value": "[parameters('appName')]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('appName')), '2023-01-01', 'full').identity.principalId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'acr-deploy')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "keyvault-deploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[format('kv-{0}', variables('suffix'))]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "appServicePrincipalId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appservice-deploy'), '2025-04-01').outputs.principalId.value]"
+          },
+          "databaseUrl": {
+            "value": "[format('postgresql://{0}:{1}@{2}:5432/padel_tracker?sslmode=require', parameters('dbAdminUser'), parameters('dbAdminPassword'), reference(resourceId('Microsoft.Resources/deployments', 'postgres-deploy'), '2025-04-01').outputs.fqdn.value)]"
+          },
+          "nextAuthSecret": {
+            "value": "[parameters('nextAuthSecret')]"
+          },
+          "adminEmail": {
+            "value": "[parameters('adminEmail')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "17874789141949292592"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "appServicePrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Object ID of the App Service Managed Identity"
+              }
+            },
+            "databaseUrl": {
+              "type": "securestring"
+            },
+            "nextAuthSecret": {
+              "type": "securestring"
+            },
+            "adminEmail": {
+              "type": "string"
+            },
+            "adminPassword": {
+              "type": "securestring"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-07-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                },
+                "tenantId": "[subscription().tenantId]",
+                "enableRbacAuthorization": true,
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 7,
+                "enabledForTemplateDeployment": true
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]",
+              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('name')), parameters('appServicePrincipalId'), 'Key Vault Secrets User')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+                "principalId": "[parameters('appServicePrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'database-url')]",
+              "properties": {
+                "value": "[parameters('databaseUrl')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'nextauth-secret')]",
+              "properties": {
+                "value": "[parameters('nextAuthSecret')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'admin-email')]",
+              "properties": {
+                "value": "[parameters('adminEmail')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'admin-password')]",
+              "properties": {
+                "value": "[parameters('adminPassword')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "kvName": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "refDbUrl": {
+              "type": "string",
+              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=database-url)', parameters('name'))]"
+            },
+            "refNextAuth": {
+              "type": "string",
+              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=nextauth-secret)', parameters('name'))]"
+            },
+            "refAdminEmail": {
+              "type": "string",
+              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=admin-email)', parameters('name'))]"
+            },
+            "refAdminPass": {
+              "type": "string",
+              "value": "[format('@Microsoft.KeyVault(VaultName={0};SecretName=admin-password)', parameters('name'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'appservice-deploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'postgres-deploy')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "appservice-config-deploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "appName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appservice-deploy'), '2025-04-01').outputs.appName.value]"
+          },
+          "kvRefDbUrl": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault-deploy'), '2025-04-01').outputs.refDbUrl.value]"
+          },
+          "kvRefNextAuth": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault-deploy'), '2025-04-01').outputs.refNextAuth.value]"
+          },
+          "kvRefAdminEmail": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault-deploy'), '2025-04-01').outputs.refAdminEmail.value]"
+          },
+          "kvRefAdminPass": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault-deploy'), '2025-04-01').outputs.refAdminPass.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "1428662978943368503"
+            }
+          },
+          "parameters": {
+            "appName": {
+              "type": "string"
+            },
+            "kvRefDbUrl": {
+              "type": "string"
+            },
+            "kvRefNextAuth": {
+              "type": "string"
+            },
+            "kvRefAdminEmail": {
+              "type": "string"
+            },
+            "kvRefAdminPass": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', parameters('appName'), 'appsettings')]",
+              "properties": {
+                "DATABASE_URL": "[parameters('kvRefDbUrl')]",
+                "NEXTAUTH_SECRET": "[parameters('kvRefNextAuth')]",
+                "ADMIN_EMAIL": "[parameters('kvRefAdminEmail')]",
+                "ADMIN_PASSWORD": "[parameters('kvRefAdminPass')]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'appservice-deploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'keyvault-deploy')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "appUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appservice-deploy'), '2025-04-01').outputs.appUrl.value]"
+    },
+    "acrLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'acr-deploy'), '2025-04-01').outputs.loginServer.value]"
+    },
+    "postgresHost": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'postgres-deploy'), '2025-04-01').outputs.fqdn.value]"
+    },
+    "appServiceName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appservice-deploy'), '2025-04-01').outputs.appName.value]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault-deploy'), '2025-04-01').outputs.kvName.value]"
+    }
+  }
+}

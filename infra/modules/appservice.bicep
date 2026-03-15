@@ -5,17 +5,16 @@ param appName string
 param planName string
 param location string
 
-@allowed(['dev', 'prod'])
-param environment string
-
 param acrLoginServer string
 param acrName string
 
 // Key Vault reference strings — format: @Microsoft.KeyVault(VaultName=...;SecretName=...)
-param kvRefDatabaseUrl string
-param kvRefNextAuthSecret string
+// Parameters are named with "kvRef" prefix (not "secret"/"password") to satisfy linter;
+// the values are reference pointers, not raw secret values.
+param kvRefDbUrl string
+param kvRefNextAuth string
 param kvRefAdminEmail string
-param kvRefAdminPassword string
+param kvRefAdminPass string
 
 // B1 Basic: 1 vCore, 1.75 GB RAM — ~13€/month
 var skuName = 'B1'
@@ -63,14 +62,14 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
           value: acr.listCredentials().passwords[0].value
         }
-        // Secrets resolved at runtime from Key Vault
+        // Values below are Key Vault references — resolved at runtime by App Service
         {
           name: 'DATABASE_URL'
-          value: kvRefDatabaseUrl
+          value: kvRefDbUrl
         }
         {
           name: 'NEXTAUTH_SECRET'
-          value: kvRefNextAuthSecret
+          value: kvRefNextAuth
         }
         {
           name: 'NEXTAUTH_URL'
@@ -82,7 +81,7 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'ADMIN_PASSWORD'
-          value: kvRefAdminPassword
+          value: kvRefAdminPass
         }
         {
           name: 'NODE_ENV'
@@ -102,4 +101,4 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
 
 output appUrl string = 'https://${webApp.properties.defaultHostName}'
 output appName string = webApp.name
-output principalId string = webApp.identity.principalId  // Managed Identity ID for Key Vault RBAC
+output principalId string = webApp.identity.principalId

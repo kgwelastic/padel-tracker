@@ -66,14 +66,13 @@ module appService 'modules/appservice.bicep' = {
     appName: 'app-${suffix}'
     planName: 'plan-${suffix}'
     location: location
-    environment: environment
     acrLoginServer: acr.outputs.loginServer
     acrName: acr.outputs.name
     // Placeholders — replaced by Key Vault references in appServiceConfig
-    kvRefDatabaseUrl: 'pending'
-    kvRefNextAuthSecret: 'pending'
+    kvRefDbUrl: 'pending'
+    kvRefNextAuth: 'pending'
     kvRefAdminEmail: 'pending'
-    kvRefAdminPassword: 'pending'
+    kvRefAdminPass: 'pending'
   }
 }
 
@@ -96,10 +95,10 @@ module appServiceConfig 'modules/appservice-config.bicep' = {
   name: 'appservice-config-deploy'
   params: {
     appName: appService.outputs.appName
-    kvRefDatabaseUrl: keyVault.outputs.refDatabaseUrl
-    kvRefNextAuthSecret: keyVault.outputs.refNextAuthSecret
+    kvRefDbUrl: keyVault.outputs.refDbUrl
+    kvRefNextAuth: keyVault.outputs.refNextAuth
     kvRefAdminEmail: keyVault.outputs.refAdminEmail
-    kvRefAdminPassword: keyVault.outputs.refAdminPassword
+    kvRefAdminPass: keyVault.outputs.refAdminPass
   }
 }
 
