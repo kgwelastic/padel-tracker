@@ -62,21 +62,51 @@ src/app/
 
 ## Deployment — Azure
 
-| Resource | Service |
-|---|---|
-| App hosting | Azure App Service (Linux, Docker container) |
-| Database | Azure Database for PostgreSQL Flexible Server |
-| Container registry | Azure Container Registry (ACR) |
-| CI/CD | GitHub Actions → `.github/workflows/azure-deploy.yml` |
+| Resource | Service | Est. cost |
+|---|---|---|
+| App hosting | Azure App Service B1 (Linux, Docker) | ~13€/mo |
+| Database | Azure Database for PostgreSQL Flexible Server (B1ms) | ~12€/mo |
+| Container registry | Azure Container Registry Basic | ~5€/mo |
+| **Total** | | **~30€/mo** |
 
-Required GitHub secrets: `ACR_LOGIN_SERVER`, `ACR_USERNAME`, `ACR_PASSWORD`, `AZURE_APP_NAME`, `AZURE_PUBLISH_PROFILE`.
+CI/CD: GitHub Actions → `.github/workflows/azure-deploy.yml`
 
-Required App Service environment variables (set in Azure Portal): `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+### Infrastructure as Code (Bicep)
 
-Azure PostgreSQL connection string format:
 ```
-postgresql://USER:PASSWORD@SERVER.postgres.database.azure.com:5432/padel_tracker?sslmode=require
+infra/
+  main.bicep           # Root — orchestrates all modules
+  main.bicepparam      # Parameter file (non-secret values)
+  deploy.sh            # Interactive first-time deploy script
+  modules/
+    acr.bicep          # Azure Container Registry
+    postgres.bicep     # PostgreSQL Flexible Server + database + firewall
+    appservice.bicep   # App Service Plan + Web App with env vars
 ```
+
+**First deploy:**
+```bash
+# Install Azure CLI, then:
+az login
+bash infra/deploy.sh   # Creates resource group + all resources
+```
+
+**Update infrastructure:**
+```bash
+az deployment group create \
+  --resource-group rg-padel-prod \
+  --template-file infra/main.bicep \
+  --parameters infra/main.bicepparam \
+  --parameters dbAdminPassword='...' nextAuthSecret='...' adminEmail='...' adminPassword='...'
+```
+
+**After infra deploy — run DB migrations on Azure:**
+```bash
+# Set DATABASE_URL to the Azure connection string, then:
+npx prisma migrate deploy
+```
+
+Required GitHub secrets for CI/CD: `ACR_LOGIN_SERVER`, `ACR_USERNAME`, `ACR_PASSWORD`, `AZURE_APP_NAME`, `AZURE_PUBLISH_PROFILE`.
 
 ## Environment variables
 
