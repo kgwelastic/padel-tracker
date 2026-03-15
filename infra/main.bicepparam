@@ -5,7 +5,7 @@ using './main.bicep'
 
 param environment = 'prod'
 param appName = 'padel'
-param location = 'westeurope'   // Amsterdam — closest to Poland
+param location = 'swedencentral'
 
 // These sensitive params must be passed via --parameters flag or Key Vault reference:
 // az deployment group create ... \
