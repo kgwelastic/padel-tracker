@@ -1,4 +1,5 @@
 // Azure App Service Plan + Web App (Docker container)
+// Secrets are read from Key Vault via Managed Identity references
 
 param appName string
 param planName string
@@ -10,20 +11,14 @@ param environment string
 param acrLoginServer string
 param acrName string
 
-@secure()
-param databaseUrl string
-
-@secure()
-param nextAuthSecret string
-
-param adminEmail string
-
-@secure()
-param adminPassword string
+// Key Vault reference strings — format: @Microsoft.KeyVault(VaultName=...;SecretName=...)
+param kvRefDatabaseUrl string
+param kvRefNextAuthSecret string
+param kvRefAdminEmail string
+param kvRefAdminPassword string
 
 // B1 Basic: 1 vCore, 1.75 GB RAM — ~13€/month
-// Scale up to P1v3 if needed (~55€/month)
-var skuName = environment == 'prod' ? 'B1' : 'B1'
+var skuName = 'B1'
 var skuTier = 'Basic'
 
 resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
@@ -47,6 +42,9 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
 resource webApp 'Microsoft.Web/sites@2023-01-01' = {
   name: appName
   location: location
+  identity: {
+    type: 'SystemAssigned' // Managed Identity — used to read Key Vault secrets
+  }
   properties: {
     serverFarmId: plan.id
     siteConfig: {
@@ -65,13 +63,14 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
           value: acr.listCredentials().passwords[0].value
         }
+        // Secrets resolved at runtime from Key Vault
         {
           name: 'DATABASE_URL'
-          value: databaseUrl
+          value: kvRefDatabaseUrl
         }
         {
           name: 'NEXTAUTH_SECRET'
-          value: nextAuthSecret
+          value: kvRefNextAuthSecret
         }
         {
           name: 'NEXTAUTH_URL'
@@ -79,11 +78,11 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'ADMIN_EMAIL'
-          value: adminEmail
+          value: kvRefAdminEmail
         }
         {
           name: 'ADMIN_PASSWORD'
-          value: adminPassword
+          value: kvRefAdminPassword
         }
         {
           name: 'NODE_ENV'
@@ -103,3 +102,4 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
 
 output appUrl string = 'https://${webApp.properties.defaultHostName}'
 output appName string = webApp.name
+output principalId string = webApp.identity.principalId  // Managed Identity ID for Key Vault RBAC

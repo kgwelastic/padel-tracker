@@ -36,7 +36,7 @@ param adminPassword string
 // ── Naming convention ──────────────────────────────────────
 var suffix = '${appName}-${environment}'
 
-// ── Modules ───────────────────────────────────────────────
+// ── Step 1: ACR + PostgreSQL (no dependencies) ────────────
 module acr 'modules/acr.bicep' = {
   name: 'acr-deploy'
   params: {
@@ -57,6 +57,9 @@ module postgres 'modules/postgres.bicep' = {
   }
 }
 
+// ── Step 2: App Service — creates Managed Identity ────────
+// Key Vault references will be set after Key Vault is ready.
+// Placeholder values here — overwritten by appServiceConfig below.
 module appService 'modules/appservice.bicep' = {
   name: 'appservice-deploy'
   params: {
@@ -66,10 +69,37 @@ module appService 'modules/appservice.bicep' = {
     environment: environment
     acrLoginServer: acr.outputs.loginServer
     acrName: acr.outputs.name
+    // Placeholders — replaced by Key Vault references in appServiceConfig
+    kvRefDatabaseUrl: 'pending'
+    kvRefNextAuthSecret: 'pending'
+    kvRefAdminEmail: 'pending'
+    kvRefAdminPassword: 'pending'
+  }
+}
+
+// ── Step 3: Key Vault — needs App Service principalId ─────
+module keyVault 'modules/keyvault.bicep' = {
+  name: 'keyvault-deploy'
+  params: {
+    name: 'kv-${suffix}'
+    location: location
+    appServicePrincipalId: appService.outputs.principalId
     databaseUrl: 'postgresql://${dbAdminUser}:${dbAdminPassword}@${postgres.outputs.fqdn}:5432/padel_tracker?sslmode=require'
     nextAuthSecret: nextAuthSecret
     adminEmail: adminEmail
     adminPassword: adminPassword
+  }
+}
+
+// ── Step 4: Update App Service with Key Vault references ──
+module appServiceConfig 'modules/appservice-config.bicep' = {
+  name: 'appservice-config-deploy'
+  params: {
+    appName: appService.outputs.appName
+    kvRefDatabaseUrl: keyVault.outputs.refDatabaseUrl
+    kvRefNextAuthSecret: keyVault.outputs.refNextAuthSecret
+    kvRefAdminEmail: keyVault.outputs.refAdminEmail
+    kvRefAdminPassword: keyVault.outputs.refAdminPassword
   }
 }
 
@@ -78,3 +108,4 @@ output appUrl string = appService.outputs.appUrl
 output acrLoginServer string = acr.outputs.loginServer
 output postgresHost string = postgres.outputs.fqdn
 output appServiceName string = appService.outputs.appName
+output keyVaultName string = keyVault.outputs.kvName
