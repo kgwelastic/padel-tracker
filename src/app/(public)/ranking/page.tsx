@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { TournamentRankings } from "@/components/TournamentRankings";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +110,11 @@ export default async function RankingPage() {
           </div>
         </div>
       )}
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Wyniki per turniej</h2>
+        <TournamentRankings />
+      </div>
     </main>
   );
 }

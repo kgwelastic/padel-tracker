@@ -247,7 +247,14 @@ export function CourtMatchCard({
                 min="0"
                 max={pointsToWin}
                 value={s1}
-                onChange={(e) => setS1(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setS1(val);
+                  const n = Number(val);
+                  if (val !== "" && !isNaN(n) && n >= 0 && n <= pointsToWin) {
+                    setS2(String(pointsToWin - n));
+                  }
+                }}
                 placeholder="0"
                 className="w-14 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
               />

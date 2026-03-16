@@ -61,8 +61,13 @@ export function AmericanoScoreForm({
           max={pointsToWin}
           value={s1}
           onChange={(e) => {
-            setS1(e.target.value);
+            const val = e.target.value;
+            setS1(val);
             setError("");
+            const n = Number(val);
+            if (val !== "" && !isNaN(n) && n >= 0 && n <= pointsToWin) {
+              setS2(String(pointsToWin - n));
+            }
           }}
           placeholder="0"
           className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"

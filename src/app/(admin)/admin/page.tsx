@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { TournamentRankings } from "@/components/TournamentRankings";
 
 export default async function AdminDashboard() {
   const [playerCount, tournamentCount, matchCount] = await Promise.all([
@@ -34,7 +35,7 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-gray-800 dark:text-gray-100">Ostatnie turnieje</h2>
           <Link href="/admin/tournaments" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
@@ -65,6 +66,13 @@ export default async function AdminDashboard() {
           </ul>
         )}
       </div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">Wyniki per turniej</h2>
+        <Link href="/admin/tournaments" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+          Wszystkie →
+        </Link>
+      </div>
+      <TournamentRankings showLinks limit={5} />
     </div>
   );
 }
