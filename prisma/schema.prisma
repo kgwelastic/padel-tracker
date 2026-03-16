@@ -89,12 +89,13 @@ model Tournament {
   location  String?
   notes     String?
   // Format gry
-  format    String   @default("singles")      // "singles" | "doubles"
+  format    String   @default("doubles")      // "doubles"
   // System rozgrywek
-  system    String   @default("round_robin")  // "round_robin" | "americano" | "groups_playoff" | "elimination"
+  system    String   @default("americano")  // "americano" | "mexicano" | "groups_playoff" | "elimination"
   groups      Int      @default(1)              // liczba grup (dla groups_playoff)
-  courts      Int      @default(1)              // liczba kortów (dla americano)
-  pointsToWin Int      @default(21)             // punkty do wygrania meczu (dla americano)
+  courts      Int      @default(1)              // liczba kortów (dla americano/mexicano)
+  courtNumbers Int[]   @default([])             // rzeczywiste numery kortów (np. [3,5,7])
+  pointsToWin Int      @default(21)             // punkty do wygrania meczu (dla americano/mexicano)
   completed   Boolean  @default(false)          // turniej zakończony (bez lub po Final Round)
   createdAt   DateTime @default(now())
 

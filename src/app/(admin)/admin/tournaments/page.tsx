@@ -5,6 +5,7 @@ import { DeleteTournamentButton } from "./DeleteTournamentButton";
 const SYSTEM_LABELS: Record<string, string> = {
   round_robin: "Round Robin",
   americano: "Americano",
+  mexicano: "Mexicano",
   groups_playoff: "Grupy + Playoff",
   elimination: "Eliminacje",
 };

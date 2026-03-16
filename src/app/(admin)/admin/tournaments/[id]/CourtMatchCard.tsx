@@ -84,16 +84,6 @@ function PadelCourtSVG({
       {/* Background */}
       <rect width="480" height="236" fill="#0d3318" rx="8" />
 
-      {/* Court number badge */}
-      {courtNumber !== undefined && (
-        <>
-          <rect x="190" y="0" width="100" height="22" rx="5" fill="rgba(0,0,0,0.65)" />
-          <text x="240" y="15" textAnchor="middle" fill="#fbbf24" fontSize="11" fontWeight="bold" letterSpacing="1">
-            KORT {courtNumber}
-          </text>
-        </>
-      )}
-
       {/* Court surface */}
       <rect x="20" y="12" width="440" height="212" fill="#1b6b41" rx="3" />
 
@@ -123,6 +113,16 @@ function PadelCourtSVG({
       {/* Net posts */}
       <rect x="236" y="8" width="8" height="8" rx="2" fill="white" />
       <rect x="236" y="220" width="8" height="8" rx="2" fill="white" />
+
+      {/* Court number badge — rendered last to appear above all court elements */}
+      {courtNumber !== undefined && (
+        <>
+          <rect x="172" y="14" width="136" height="26" rx="13" fill="rgba(0,0,0,0.80)" />
+          <text x="240" y="32" textAnchor="middle" fill="#fbbf24" fontSize="12" fontWeight="bold" letterSpacing="2">
+            KORT {courtNumber}
+          </text>
+        </>
+      )}
 
       {/* ── Team 1 (left back court) ── */}
       <PlayerPin cx={88} cy={72} name={t1p1} color={c1} />

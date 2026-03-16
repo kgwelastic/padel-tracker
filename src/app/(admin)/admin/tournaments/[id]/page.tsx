@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import {
   enterMatchResult,
   clearMatchResult,
-  generateNextAmericanoRound,
+  generateNextRound,
   generateAmericanoFinalRound,
   completeTournament,
 } from "./actions";
@@ -28,6 +28,7 @@ function teamLabel(team: Team) {
 const SYSTEM_LABELS: Record<string, string> = {
   round_robin: "Round Robin",
   americano: "Americano",
+  mexicano: "Mexicano",
   groups_playoff: "Grupy + Playoff",
   elimination: "Eliminacje",
 };
@@ -59,7 +60,7 @@ export default async function TournamentDetailPage({
 
   if (!tournament) notFound();
 
-  const isAmericano = tournament.system === "americano";
+  const isAmericano = tournament.system === "americano" || tournament.system === "mexicano";
 
   // ── Americano-specific computed data ──────────────────────
   // Individual player rankings = entries where team.player2Id is null
@@ -131,7 +132,7 @@ export default async function TournamentDetailPage({
             {tournament.location && ` · ${tournament.location}`}
             {" · "}
             {SYSTEM_LABELS[tournament.system] ?? tournament.system}
-            {isAmericano && ` · ${tournament.courts} ${tournament.courts === 1 ? "kort" : "korty"} · do ${tournament.pointsToWin} pkt`}
+            {isAmericano && ` · ${tournament.courtNumbers.length > 0 ? tournament.courtNumbers.join(", ") : tournament.courts} ${tournament.courts === 1 ? "kort" : "korty"} · do ${tournament.pointsToWin} pkt`}
           </p>
         </div>
 
@@ -141,7 +142,7 @@ export default async function TournamentDetailPage({
             <ImportCsvForm tournamentId={id} />
             {!hasFinalRound && (
               <>
-                <form action={async () => { "use server"; await generateNextAmericanoRound(id); }}>
+                <form action={async () => { "use server"; await generateNextRound(id); }}>
                   <button
                     type="submit"
                     disabled={!allCurrentCompleted}

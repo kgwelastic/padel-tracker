@@ -9,16 +9,16 @@ type Step = 1 | 2 | 3 | 4;
 
 const SYSTEMS = [
   {
-    value: "round_robin",
-    label: "Round Robin",
-    desc: "Każdy gra z każdym. Wygrywa najlepszy bilans.",
-    icon: "◎",
-  },
-  {
     value: "americano",
     label: "Americano",
     desc: "Pary losowane co rundę. Ranking indywidualny po punktach.",
     icon: "🔄",
+  },
+  {
+    value: "mexicano",
+    label: "Mexicano",
+    desc: "Runda 1 losowa, kolejne: 1. z 2., 3. z 4. itd. Ranking decyduje o parach.",
+    icon: "🇲🇽",
   },
   {
     value: "groups_playoff",
@@ -46,25 +46,28 @@ export function TournamentWizard({ players }: { players: Player[] }) {
   const [notes, setNotes] = useState("");
 
   // Step 2
-  const [format, setFormat] = useState<"singles" | "doubles">("singles");
-  const [system, setSystem] = useState<CreateTournamentInput["system"]>("round_robin");
+  const [system, setSystem] = useState<CreateTournamentInput["system"]>("americano");
   const [groupCount, setGroupCount] = useState(2);
   const [courts, setCourts] = useState(2);
+  const [courtNumbers, setCourtNumbers] = useState<number[]>([1, 2]);
   const [pointsToWin, setPointsToWin] = useState(21);
 
   // Step 3
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<{ p1: string; p2: string; name: string }[]>([]);
 
-  const isAmericano = system === "americano";
+  const isAmericanoLike = system === "americano" || system === "mexicano";
 
-  // For Americano and singles: use selectedPlayerIds
-  // For doubles: use teams
-  const participantCount = isAmericano
-    ? selectedPlayerIds.length
-    : format === "singles"
-    ? selectedPlayerIds.length
-    : teams.length;
+  const participantCount = isAmericanoLike ? selectedPlayerIds.length : teams.length;
+
+  function handleCourtsChange(n: number) {
+    setCourts(n);
+    setCourtNumbers(Array.from({ length: n }, (_, i) => i + 1));
+  }
+
+  function updateCourtNumber(idx: number, val: number) {
+    setCourtNumbers((prev) => prev.map((n, i) => (i === idx ? val : n)));
+  }
 
   function togglePlayer(id: string) {
     setSelectedPlayerIds((prev) =>
@@ -95,7 +98,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
     try {
       let participants: ParticipantInput[];
 
-      if (isAmericano || format === "singles") {
+      if (isAmericanoLike) {
         participants = selectedPlayerIds.map((id) => ({ type: "singles", playerId: id }));
       } else {
         participants = teams.map((t) => ({
@@ -111,11 +114,12 @@ export function TournamentWizard({ players }: { players: Player[] }) {
         date,
         location: location || undefined,
         notes: notes || undefined,
-        format: isAmericano ? "doubles" : format,
+        format: "doubles",
         system,
         groups: system === "groups_playoff" ? groupCount : 1,
-        courts: isAmericano ? courts : 1,
-        pointsToWin: isAmericano ? pointsToWin : 21,
+        courts: isAmericanoLike ? courts : 1,
+        courtNumbers: isAmericanoLike ? courtNumbers : [],
+        pointsToWin: isAmericanoLike ? pointsToWin : 21,
         participants,
       });
       router.push(`/admin/tournaments/${id}`);
@@ -124,10 +128,9 @@ export function TournamentWizard({ players }: { players: Player[] }) {
     }
   }
 
-  const matchesPerRound =
-    isAmericano
-      ? Math.floor(Math.min(courts * 4, participantCount) / 4)
-      : null;
+  const matchesPerRound = isAmericanoLike
+    ? Math.floor(Math.min(courts * 4, participantCount) / 4)
+    : null;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -166,7 +169,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="np. Turniej Marzec 2026"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
@@ -175,7 +178,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
@@ -184,7 +187,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="np. Korty Mokotów"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
@@ -193,7 +196,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <button
@@ -206,37 +209,10 @@ export function TournamentWizard({ players }: { players: Player[] }) {
         </div>
       )}
 
-      {/* Step 2: Format + System */}
+      {/* Step 2: System */}
       {step === 2 && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 flex flex-col gap-6">
-          <h2 className="font-semibold text-lg text-gray-800 dark:text-gray-100">Format i system gry</h2>
-
-          {/* Format — only shown for non-Americano */}
-          {!isAmericano && (
-            <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">Format gry</p>
-              <div className="grid grid-cols-2 gap-3">
-                {(["singles", "doubles"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFormat(f)}
-                    className={`p-4 rounded-xl border-2 text-left transition-colors ${
-                      format === f
-                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-gray-200 dark:border-gray-600 hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-semibold text-sm">
-                      {f === "singles" ? "Singiel" : "Debel"}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {f === "singles" ? "1 gracz vs 1 gracz" : "Para vs para (2 vs 2)"}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <h2 className="font-semibold text-lg text-gray-800 dark:text-gray-100">System gry</h2>
 
           <div>
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">System rozgrywek</p>
@@ -254,7 +230,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{s.icon}</span>
                     <div>
-                      <p className="font-semibold text-sm">{s.label}</p>
+                      <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{s.label}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{s.desc}</p>
                     </div>
                   </div>
@@ -281,11 +257,11 @@ export function TournamentWizard({ players }: { players: Player[] }) {
             </div>
           )}
 
-          {/* Americano settings */}
-          {isAmericano && (
+          {/* Americano / Mexicano settings */}
+          {isAmericanoLike && (
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex flex-col gap-4">
               <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
-                Ustawienia Americano
+                Ustawienia {system === "mexicano" ? "Mexicano" : "Americano"}
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -294,7 +270,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
                   </label>
                   <select
                     value={courts}
-                    onChange={(e) => setCourts(Number(e.target.value))}
+                    onChange={(e) => handleCourtsChange(Number(e.target.value))}
                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   >
                     {[1, 2, 3, 4, 5, 6].map((n) => (
@@ -317,10 +293,35 @@ export function TournamentWizard({ players }: { players: Player[] }) {
                     onChange={(e) => setPointsToWin(Number(e.target.value))}
                     min={5}
                     max={100}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Suma punktów na mecz</p>
                 </div>
+              </div>
+
+              {/* Court numbers */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
+                  Numery kortów
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {Array.from({ length: courts }, (_, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Kort {i + 1}:</span>
+                      <input
+                        type="number"
+                        value={courtNumbers[i] ?? i + 1}
+                        onChange={(e) => updateCourtNumber(i, Number(e.target.value))}
+                        min={1}
+                        max={99}
+                        className="w-14 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Rzeczywiste numery kortów (np. jeśli dostępne są korty 3, 5, 7)
+                </p>
               </div>
             </div>
           )}
@@ -346,28 +347,22 @@ export function TournamentWizard({ players }: { players: Player[] }) {
       {step === 3 && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 flex flex-col gap-4">
           <h2 className="font-semibold text-lg text-gray-800 dark:text-gray-100">
-            {isAmericano
-              ? "Wybierz uczestników"
-              : format === "singles"
-              ? "Wybierz graczy"
-              : "Utwórz pary (debel)"}
+            {isAmericanoLike ? "Wybierz uczestników" : "Utwórz pary (debel)"}
           </h2>
 
-          {/* Individual player selection: singles OR americano */}
-          {(isAmericano || format === "singles") && (
+          {/* Individual player selection for Americano/Mexicano */}
+          {isAmericanoLike && (
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                {isAmericano
-                  ? `Zaznacz uczestników turnieju (${selectedPlayerIds.length} wybranych). Pary będą losowane automatycznie.`
-                  : `Zaznacz graczy biorących udział (${selectedPlayerIds.length} wybranych).`}
+                Zaznacz uczestników turnieju ({selectedPlayerIds.length} wybranych). Pary będą losowane automatycznie.
               </p>
-              {isAmericano && selectedPlayerIds.length > 0 && selectedPlayerIds.length < courts * 4 && (
+              {selectedPlayerIds.length > 0 && selectedPlayerIds.length < courts * 4 && (
                 <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 rounded-lg text-xs text-amber-700 dark:text-amber-400">
                   Minimum {courts * 4} graczy dla {courts} {courts === 1 ? "kortu" : "kortów"}.
                   Aktualnie: {selectedPlayerIds.length}. Możliwa jest gra z mniejszą liczbą (kto nie gra — pauzuje).
                 </div>
               )}
-              {isAmericano && selectedPlayerIds.length >= 4 && selectedPlayerIds.length % 4 !== 0 && (
+              {selectedPlayerIds.length >= 4 && selectedPlayerIds.length % 4 !== 0 && (
                 <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg text-xs text-blue-700 dark:text-blue-400">
                   {selectedPlayerIds.length % 4} gracz
                   {selectedPlayerIds.length % 4 === 1 ? "" : "e"} będzie pauzować w każdej rundzie (rotacja).
@@ -394,8 +389,8 @@ export function TournamentWizard({ players }: { players: Player[] }) {
             </div>
           )}
 
-          {/* Team builder: doubles (non-Americano) */}
-          {!isAmericano && format === "doubles" && (
+          {/* Team builder: doubles (non-Americano/Mexicano) */}
+          {!isAmericanoLike && (
             <div className="flex flex-col gap-3">
               <p className="text-xs text-gray-500 dark:text-gray-400">Utwórz pary debla ({teams.length} par)</p>
               {teams.map((team, i) => (
@@ -442,7 +437,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
                     value={team.name}
                     onChange={(e) => updateTeam(i, "name", e.target.value)}
                     placeholder="Nazwa pary (opcjonalnie)"
-                    className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                   />
                 </div>
               ))}
@@ -463,7 +458,7 @@ export function TournamentWizard({ players }: { players: Player[] }) {
               ← Wstecz
             </button>
             <button
-              disabled={participantCount < (isAmericano ? 4 : 2)}
+              disabled={participantCount < (isAmericanoLike ? 4 : 2)}
               onClick={() => setStep(4)}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors"
             >
@@ -480,55 +475,35 @@ export function TournamentWizard({ players }: { players: Player[] }) {
 
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 flex flex-col gap-2 text-sm">
             <Row label="Turniej" value={name} />
-            <Row
-              label="Data"
-              value={new Date(date).toLocaleDateString("pl-PL")}
-            />
+            <Row label="Data" value={new Date(date).toLocaleDateString("pl-PL")} />
             {location && <Row label="Miejsce" value={location} />}
-            {isAmericano ? (
+            {isAmericanoLike ? (
               <>
-                <Row label="System" value="Americano (Debel)" />
-                <Row label="Korty" value={`${courts} ${courts === 1 ? "kort" : courts < 5 ? "korty" : "kortów"}`} />
+                <Row label="System" value={system === "mexicano" ? "Mexicano (Debel)" : "Americano (Debel)"} />
+                <Row
+                  label="Korty"
+                  value={courtNumbers.map((n) => `Kort ${n}`).join(", ")}
+                />
                 <Row label="Punkty do wygrania" value={`${pointsToWin}`} />
                 <Row label="Uczestników" value={`${participantCount}`} />
                 {matchesPerRound !== null && matchesPerRound > 0 && (
-                  <Row
-                    label="Meczów / rundę"
-                    value={`${matchesPerRound}`}
-                    highlight
-                  />
+                  <Row label="Meczów / rundę" value={`${matchesPerRound}`} highlight />
                 )}
                 {participantCount > courts * 4 && (
-                  <Row
-                    label="Pauzuje / rundę"
-                    value={`${participantCount - courts * 4} graczy`}
-                  />
+                  <Row label="Pauzuje / rundę" value={`${participantCount - courts * 4} graczy`} />
                 )}
               </>
             ) : (
               <>
                 <Row
-                  label="Format"
-                  value={format === "singles" ? "Singiel" : "Debel"}
-                />
-                <Row
                   label="System"
-                  value={
-                    SYSTEMS.find((s) => s.value === system)?.label ?? system
-                  }
+                  value={SYSTEMS.find((s) => s.value === system)?.label ?? system}
                 />
                 {system === "groups_playoff" && (
                   <Row label="Grup" value={`${groupCount}`} />
                 )}
-                <Row
-                  label={format === "singles" ? "Graczy" : "Par"}
-                  value={`${participantCount}`}
-                />
-                <Row
-                  label="Meczów (wygenerowanych)"
-                  value={`${estimateMatchCount()}`}
-                  highlight
-                />
+                <Row label="Par" value={`${participantCount}`} />
+                <Row label="Meczów (wygenerowanych)" value={`${estimateMatchCount()}`} highlight />
               </>
             )}
           </div>
@@ -555,7 +530,6 @@ export function TournamentWizard({ players }: { players: Player[] }) {
 
   function estimateMatchCount(): number {
     const n = participantCount;
-    if (system === "round_robin") return (n * (n - 1)) / 2;
     if (system === "groups_playoff")
       return (
         Math.floor(((n / groupCount) * (n / groupCount - 1)) / 2) * groupCount
@@ -577,7 +551,7 @@ function Row({
   return (
     <div className="flex justify-between">
       <span className="text-gray-500 dark:text-gray-400">{label}</span>
-      <span className={highlight ? "font-bold text-blue-600" : "font-medium"}>
+      <span className={highlight ? "font-bold text-blue-600" : "font-medium text-gray-800 dark:text-gray-100"}>
         {value}
       </span>
     </div>

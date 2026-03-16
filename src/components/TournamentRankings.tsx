@@ -4,6 +4,7 @@ import Link from "next/link";
 const SYSTEM_LABELS: Record<string, string> = {
   round_robin: "Round Robin",
   americano: "Americano",
+  mexicano: "Mexicano",
   groups_playoff: "Grupy + Playoff",
   elimination: "Eliminacje",
 };
@@ -40,7 +41,7 @@ export async function TournamentRankings({
   return (
     <div className="flex flex-col gap-6">
       {tournaments.map((t) => {
-        const isAmericano = t.system === "americano";
+        const isAmericano = t.system === "americano" || t.system === "mexicano";
         const entries = isAmericano
           ? t.rankingEntries
               .filter((e) => e.team.player2Id === null)

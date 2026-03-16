@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
   generateRoundRobin,
-  generateAmericanoRound1,
   generateGroupsRoundRobin,
   generateElimination,
   generateAmericanoPairs,
@@ -16,10 +15,11 @@ export type CreateTournamentInput = {
   location?: string;
   notes?: string;
   format: "singles" | "doubles";
-  system: "round_robin" | "americano" | "groups_playoff" | "elimination";
+  system: "round_robin" | "americano" | "mexicano" | "groups_playoff" | "elimination";
   groups?: number;
-  courts?: number;      // Americano only
-  pointsToWin?: number; // Americano only
+  courts?: number;
+  courtNumbers?: number[]; // actual court numbers (e.g. [3, 5, 7])
+  pointsToWin?: number;
   participants: ParticipantInput[];
 };
 
@@ -37,6 +37,7 @@ export async function createTournamentWithMatches(input: CreateTournamentInput) 
     system,
     groups = 1,
     courts = 1,
+    courtNumbers = [],
     pointsToWin = 21,
     participants,
   } = input;
@@ -51,13 +52,13 @@ export async function createTournamentWithMatches(input: CreateTournamentInput) 
       system,
       groups,
       courts,
+      courtNumbers,
       pointsToWin,
     },
   });
 
-  // ── Americano: individual player registration + dynamic round 1 pairs ──
-  if (system === "americano") {
-    // Create individual player teams (tracking units for ranking)
+  // ── Americano / Mexicano: individual player registration + dynamic round 1 pairs ──
+  if (system === "americano" || system === "mexicano") {
     const individualTeams = await Promise.all(
       participants.map(async (p) => {
         const playerId = p.type === "singles" ? p.playerId : p.player1Id;
@@ -67,7 +68,6 @@ export async function createTournamentWithMatches(input: CreateTournamentInput) 
       })
     );
 
-    // RankingEntries only for individual teams
     await prisma.rankingEntry.createMany({
       data: individualTeams.map((t) => ({
         tournamentId: tournament.id,
@@ -75,14 +75,13 @@ export async function createTournamentWithMatches(input: CreateTournamentInput) 
       })),
     });
 
-    // Determine active players for round 1 (courts * 4 max)
     const allPlayerIds = shuffle(individualTeams.map((t) => t.player1Id));
     const activeCount = Math.floor(Math.min(courts * 4, allPlayerIds.length) / 4) * 4;
     const activePlayers = allPlayerIds.slice(0, activeCount);
 
     if (activePlayers.length >= 4) {
       const pairs = generateAmericanoPairs(activePlayers, new Set());
-      await createAmericanoRoundMatches(tournament.id, pairs, 1);
+      await createAmericanoRoundMatches(tournament.id, pairs, 1, courtNumbers);
     }
 
     revalidatePath("/admin/tournaments");
@@ -141,15 +140,18 @@ export async function createTournamentWithMatches(input: CreateTournamentInput) 
   return tournament.id;
 }
 
-// Helper: create pair teams + matches for one Americano round
+// Helper: create pair teams + matches for one Americano/Mexicano round
 export async function createAmericanoRoundMatches(
   tournamentId: string,
   pairs: Array<[string, string]>,
-  roundNumber: number
+  roundNumber: number,
+  courtNumbers: number[] = []
 ) {
   for (let i = 0; i < pairs.length; i += 2) {
     const [p1a, p1b] = pairs[i];
     const [p2a, p2b] = pairs[i + 1];
+    const courtIdx = i / 2;
+    const court = courtNumbers[courtIdx] ?? courtIdx + 1;
 
     const team1 = await prisma.team.create({
       data: { tournamentId, player1Id: p1a, player2Id: p1b },
@@ -164,6 +166,7 @@ export async function createAmericanoRoundMatches(
         team1Id: team1.id,
         team2Id: team2.id,
         round: roundNumber,
+        court,
         status: "pending",
       },
     });
