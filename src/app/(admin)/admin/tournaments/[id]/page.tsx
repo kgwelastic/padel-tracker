@@ -6,6 +6,7 @@ import {
   generateNextAmericanoRound,
   generateAmericanoFinalRound,
 } from "./actions";
+import { AmericanoScoreForm } from "./AmericanoScoreForm";
 
 type Team = {
   id: string;
@@ -59,10 +60,11 @@ export default async function TournamentDetailPage({
 
   // ── Americano-specific computed data ──────────────────────
   // Individual player rankings = entries where team.player2Id is null
+  // For Americano: points = total game points scored (primary sort), wins as tiebreaker
   const individualRankings = isAmericano
     ? tournament.rankingEntries
         .filter((e) => e.team.player2Id === null)
-        .sort((a, b) => b.points - a.points || b.gamesWon - a.gamesWon)
+        .sort((a, b) => b.points - a.points || b.wins - a.wins)
     : [];
 
   // Current round state (for Americano controls)
@@ -202,7 +204,6 @@ export default async function TournamentDetailPage({
                     <th className="px-4 py-2 text-left">Gracz</th>
                     <th className="px-4 py-2 text-center">Pkt</th>
                     <th className="px-4 py-2 text-center">W/P</th>
-                    <th className="px-4 py-2 text-center">Gemy</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -217,9 +218,6 @@ export default async function TournamentDetailPage({
                       </td>
                       <td className="px-4 py-2 text-center text-gray-500">
                         {e.wins}/{e.losses}
-                      </td>
-                      <td className="px-4 py-2 text-center text-gray-500">
-                        {e.gamesWon}/{e.gamesLost}
                       </td>
                     </tr>
                   ))}
@@ -357,43 +355,14 @@ export default async function TournamentDetailPage({
                           </form>
                         </div>
                       ) : isAmericano ? (
-                        /* Americano pending: single point total entry */
-                        <form
-                          action={enterMatchResult.bind(null, m.id, id)}
-                          className="flex flex-col gap-2"
-                        >
-                          <div className="text-sm font-medium text-gray-700 mb-1">
-                            {teamLabel(m.team1)}
-                            <span className="mx-2 text-gray-400 font-normal">vs</span>
-                            {teamLabel(m.team2)}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              name="set1_t1"
-                              type="number"
-                              min="0"
-                              max={tournament.pointsToWin}
-                              placeholder="0"
-                              className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-gray-400 font-medium">–</span>
-                            <input
-                              name="set1_t2"
-                              type="number"
-                              min="0"
-                              max={tournament.pointsToWin}
-                              placeholder="0"
-                              className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-xs text-gray-400">pkt (do {tournament.pointsToWin})</span>
-                            <button
-                              type="submit"
-                              className="ml-auto bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition-colors"
-                            >
-                              Zapisz
-                            </button>
-                          </div>
-                        </form>
+                        /* Americano pending: validated point total entry */
+                        <AmericanoScoreForm
+                          matchId={m.id}
+                          tournamentId={id}
+                          team1Label={teamLabel(m.team1)}
+                          team2Label={teamLabel(m.team2)}
+                          pointsToWin={tournament.pointsToWin}
+                        />
                       ) : (
                         /* Standard pending: up to 3 sets */
                         <form

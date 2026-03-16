@@ -79,14 +79,10 @@ async function recalculateAmericanoRanking(tournamentId: string) {
     const t2Score = match.sets.reduce((a, s) => a + s.team2Score, 0);
     const t1Won = t1Score > t2Score;
     const t2Won = t2Score > t1Score;
-    const draw = t1Score === t2Score;
 
-    const t1Points = t1Won ? POINTS_WIN : draw ? POINTS_DRAW : POINTS_LOSS;
-    const t2Points = t2Won ? POINTS_WIN : draw ? POINTS_DRAW : POINTS_LOSS;
-
-    for (const [team, score, oppScore, won, pts] of [
-      [match.team1, t1Score, t2Score, t1Won, t1Points],
-      [match.team2, t2Score, t1Score, t2Won, t2Points],
+    for (const [team, score, oppScore, won] of [
+      [match.team1, t1Score, t2Score, t1Won],
+      [match.team2, t2Score, t1Score, t2Won],
     ] as const) {
       for (const pid of [team.player1Id, team.player2Id].filter(Boolean) as string[]) {
         const teamId = playerToTeamId.get(pid);
@@ -94,9 +90,10 @@ async function recalculateAmericanoRanking(tournamentId: string) {
         await prisma.rankingEntry.update({
           where: { tournamentId_teamId: { tournamentId, teamId } },
           data: {
-            points: { increment: pts },
+            // For Americano: points = total game points scored (primary ranking metric)
+            points: { increment: score },
             wins: { increment: won ? 1 : 0 },
-            losses: { increment: !won && !draw ? 1 : 0 },
+            losses: { increment: !won ? 1 : 0 },
             gamesWon: { increment: score },
             gamesLost: { increment: oppScore },
           },
