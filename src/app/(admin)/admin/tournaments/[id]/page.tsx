@@ -7,6 +7,7 @@ import {
   generateAmericanoFinalRound,
 } from "./actions";
 import { AmericanoScoreForm } from "./AmericanoScoreForm";
+import { CourtMatchCard } from "./CourtMatchCard";
 
 type Team = {
   id: string;
@@ -280,10 +281,13 @@ export default async function TournamentDetailPage({
           )}
 
           {Object.entries(grouped).map(([label, matches]) => (
-            <div key={label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            <div key={label}>
+              {/* Round header */}
               <div
-                className={`px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between ${
-                  label === "Final" ? "bg-amber-50 dark:bg-amber-900/20" : "bg-gray-50 dark:bg-gray-700/50"
+                className={`px-4 py-2.5 rounded-xl mb-3 flex items-center justify-between ${
+                  label === "Final"
+                    ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
+                    : "bg-gray-100 dark:bg-gray-700/50"
                 }`}
               >
                 <span
@@ -294,129 +298,93 @@ export default async function TournamentDetailPage({
                   {label === "Final" ? "Final Round" : label}
                 </span>
                 {label === "Final" && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium hidden sm:block">
                     Pary: (1+4) vs (2+3) · (5+8) vs (6+7) · …
                   </span>
                 )}
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {matches.filter((m) => m.status === "completed").length}/{matches.length} meczów
+                </span>
               </div>
-              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                {matches.map((m) => {
-                  const t1Score = m.sets.reduce((a, s) => a + s.team1Score, 0);
-                  const t2Score = m.sets.reduce((a, s) => a + s.team2Score, 0);
-                  const t1SetsWon = m.sets.filter((s) => s.team1Score > s.team2Score).length;
-                  const t2SetsWon = m.sets.filter((s) => s.team2Score > s.team1Score).length;
 
-                  return (
-                    <li key={m.id} className="px-4 py-3">
-                      {m.status === "completed" ? (
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 text-sm min-w-0">
-                            {/* Mobile: stacked layout */}
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-0 gap-0.5">
-                              <span
-                                className={`truncate ${
-                                  isAmericano
-                                    ? t1Score > t2Score
-                                      ? "font-bold text-green-700 dark:text-green-400"
-                                      : "text-gray-600 dark:text-gray-300"
-                                    : t1SetsWon > t2SetsWon
-                                    ? "font-bold text-green-700 dark:text-green-400"
-                                    : "text-gray-600 dark:text-gray-300"
-                                }`}
-                              >
-                                {teamLabel(m.team1)}
-                              </span>
-                              <span className="font-mono text-gray-500 dark:text-gray-400 sm:mx-2 text-xs sm:text-sm">
-                                {isAmericano
-                                  ? `${t1Score} – ${t2Score}`
-                                  : m.sets.map((s) => `${s.team1Score}:${s.team2Score}`).join("  ")}
-                              </span>
-                              <span
-                                className={`truncate ${
-                                  isAmericano
-                                    ? t2Score > t1Score
-                                      ? "font-bold text-green-700 dark:text-green-400"
-                                      : "text-gray-600 dark:text-gray-300"
-                                    : t2SetsWon > t1SetsWon
-                                    ? "font-bold text-green-700 dark:text-green-400"
-                                    : "text-gray-600 dark:text-gray-300"
-                                }`}
-                              >
-                                {teamLabel(m.team2)}
-                              </span>
-                            </div>
-                          </div>
-                          <form
-                            action={async () => {
-                              "use server";
-                              await clearMatchResult(m.id, id);
-                            }}
-                          >
-                            <button
-                              type="submit"
-                              className="text-xs text-red-400 hover:text-red-600 flex-shrink-0"
-                              title="Usuń wynik"
-                            >
-                              ✕
-                            </button>
-                          </form>
-                        </div>
-                      ) : isAmericano ? (
-                        /* Americano pending: validated point total entry */
-                        <AmericanoScoreForm
-                          matchId={m.id}
-                          tournamentId={id}
-                          team1Label={teamLabel(m.team1)}
-                          team2Label={teamLabel(m.team2)}
-                          pointsToWin={tournament.pointsToWin}
-                        />
-                      ) : (
-                        /* Standard pending: up to 3 sets */
-                        <form
-                          action={enterMatchResult.bind(null, m.id, id)}
-                          className="flex flex-col gap-2"
-                        >
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
-                            <span>{teamLabel(m.team1)}</span>
-                            <span className="text-gray-400 dark:text-gray-500">vs</span>
-                            <span>{teamLabel(m.team2)}</span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {[1, 2, 3].map((n) => (
-                              <div key={n} className="flex items-center gap-1">
-                                <span className="text-xs text-gray-400 dark:text-gray-500 w-10">Set {n}</span>
-                                <input
-                                  name={`set${n}_t1`}
-                                  type="number"
-                                  min="0"
-                                  max="99"
-                                  placeholder="—"
-                                  className="w-12 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <span className="text-gray-400 dark:text-gray-500">:</span>
-                                <input
-                                  name={`set${n}_t2`}
-                                  type="number"
-                                  min="0"
-                                  max="99"
-                                  placeholder="—"
-                                  className="w-12 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
+              {/* Court cards grid for Americano / standard list for others */}
+              {isAmericano ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {matches.map((m) => {
+                    const t1Score = m.sets.reduce((a, s) => a + s.team1Score, 0);
+                    const t2Score = m.sets.reduce((a, s) => a + s.team2Score, 0);
+                    return (
+                      <CourtMatchCard
+                        key={m.id}
+                        matchId={m.id}
+                        tournamentId={id}
+                        team1Player1={m.team1.player1.name}
+                        team1Player2={m.team1.player2?.name ?? null}
+                        team2Player1={m.team2.player1.name}
+                        team2Player2={m.team2.player2?.name ?? null}
+                        status={m.status as "pending" | "completed"}
+                        t1Score={t1Score}
+                        t2Score={t2Score}
+                        pointsToWin={tournament.pointsToWin}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {matches.map((m) => {
+                      const t1Score = m.sets.reduce((a, s) => a + s.team1Score, 0);
+                      const t2Score = m.sets.reduce((a, s) => a + s.team2Score, 0);
+                      const t1SetsWon = m.sets.filter((s) => s.team1Score > s.team2Score).length;
+                      const t2SetsWon = m.sets.filter((s) => s.team2Score > s.team1Score).length;
+                      return (
+                        <li key={m.id} className="px-4 py-3">
+                          {m.status === "completed" ? (
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 text-sm min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-0">
+                                  <span className={`truncate ${t1SetsWon > t2SetsWon ? "font-bold text-green-700 dark:text-green-400" : "text-gray-600 dark:text-gray-300"}`}>
+                                    {teamLabel(m.team1)}
+                                  </span>
+                                  <span className="font-mono text-gray-500 dark:text-gray-400 sm:mx-2 text-xs sm:text-sm">
+                                    {m.sets.map((s) => `${s.team1Score}:${s.team2Score}`).join("  ")}
+                                  </span>
+                                  <span className={`truncate ${t2SetsWon > t1SetsWon ? "font-bold text-green-700 dark:text-green-400" : "text-gray-600 dark:text-gray-300"}`}>
+                                    {teamLabel(m.team2)}
+                                  </span>
+                                </div>
                               </div>
-                            ))}
-                            <button
-                              type="submit"
-                              className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition-colors"
-                            >
-                              Zapisz
-                            </button>
-                          </div>
-                        </form>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+                              <form action={async () => { "use server"; await clearMatchResult(m.id, id); }}>
+                                <button type="submit" className="text-xs text-red-400 hover:text-red-600 flex-shrink-0" title="Usuń wynik">✕</button>
+                              </form>
+                            </div>
+                          ) : (
+                            <form action={enterMatchResult.bind(null, m.id, id)} className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                                <span>{teamLabel(m.team1)}</span>
+                                <span className="text-gray-400 dark:text-gray-500">vs</span>
+                                <span>{teamLabel(m.team2)}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                {[1, 2, 3].map((n) => (
+                                  <div key={n} className="flex items-center gap-1">
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 w-10">Set {n}</span>
+                                    <input name={`set${n}_t1`} type="number" min="0" max="99" placeholder="—" className="w-12 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <span className="text-gray-400 dark:text-gray-500">:</span>
+                                    <input name={`set${n}_t2`} type="number" min="0" max="99" placeholder="—" className="w-12 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                  </div>
+                                ))}
+                                <button type="submit" className="bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition-colors">Zapisz</button>
+                              </div>
+                            </form>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
 
