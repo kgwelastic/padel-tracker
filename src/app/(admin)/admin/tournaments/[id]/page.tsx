@@ -8,6 +8,7 @@ import {
 } from "./actions";
 import { AmericanoScoreForm } from "./AmericanoScoreForm";
 import { CourtMatchCard } from "./CourtMatchCard";
+import { ImportCsvForm } from "./ImportCsvForm";
 
 type Team = {
   id: string;
@@ -102,6 +103,7 @@ export default async function TournamentDetailPage({
   // ── Match grouping ────────────────────────────────────────
   const grouped: Record<string, typeof tournament.matches> = {};
   for (const match of tournament.matches) {
+    if (match.group === "bye") continue; // bye matches are hidden, used only for ranking
     const key =
       match.group === "Final"
         ? "Final"
@@ -133,7 +135,8 @@ export default async function TournamentDetailPage({
 
         {/* Americano controls */}
         {isAmericano && !hasFinalRound && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <ImportCsvForm tournamentId={id} />
             <form
               action={async () => {
                 "use server";

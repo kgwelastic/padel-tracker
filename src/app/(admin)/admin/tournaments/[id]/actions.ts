@@ -75,6 +75,19 @@ async function recalculateAmericanoRanking(tournamentId: string) {
   });
 
   for (const match of matches) {
+    // Bye match: sitting-out player gets bonus points, no win/loss recorded
+    if (match.group === "bye") {
+      const bonusPoints = match.sets.reduce((a, s) => a + s.team1Score, 0);
+      const teamId = playerToTeamId.get(match.team1.player1Id);
+      if (teamId) {
+        await prisma.rankingEntry.update({
+          where: { tournamentId_teamId: { tournamentId, teamId } },
+          data: { points: { increment: bonusPoints } },
+        });
+      }
+      continue;
+    }
+
     const t1Score = match.sets.reduce((a, s) => a + s.team1Score, 0);
     const t2Score = match.sets.reduce((a, s) => a + s.team2Score, 0);
     const t1Won = t1Score > t2Score;
@@ -90,7 +103,6 @@ async function recalculateAmericanoRanking(tournamentId: string) {
         await prisma.rankingEntry.update({
           where: { tournamentId_teamId: { tournamentId, teamId } },
           data: {
-            // For Americano: points = total game points scored (primary ranking metric)
             points: { increment: score },
             wins: { increment: won ? 1 : 0 },
             losses: { increment: !won ? 1 : 0 },
@@ -160,7 +172,7 @@ export async function clearMatchResult(matchId: string, tournamentId: string) {
 export async function generateNextAmericanoRound(tournamentId: string) {
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { courts: true },
+    select: { courts: true, pointsToWin: true },
   });
   if (!tournament) return;
 
@@ -225,7 +237,30 @@ export async function generateNextAmericanoRound(tournamentId: string) {
     });
   }
 
+  // Create bye matches for sitting-out players and award bonus points
+  const sittingOutIds = prioritized.slice(activeCount);
+  const byePoints = Math.ceil(tournament.pointsToWin / 2);
+  for (const playerId of sittingOutIds) {
+    const indivTeam = individualTeams.find((t) => t.player1Id === playerId);
+    if (!indivTeam) continue;
+    const byeMatch = await prisma.match.create({
+      data: {
+        tournamentId,
+        team1Id: indivTeam.id,
+        team2Id: indivTeam.id,
+        round: nextRound,
+        group: "bye",
+        status: "completed",
+      },
+    });
+    await prisma.set.create({
+      data: { matchId: byeMatch.id, setNumber: 1, team1Score: byePoints, team2Score: 0 },
+    });
+  }
+
+  await recalculateAmericanoRanking(tournamentId);
   revalidatePath(`/admin/tournaments/${tournamentId}`);
+  revalidatePath("/ranking");
 }
 
 export async function generateAmericanoFinalRound(tournamentId: string) {
@@ -278,4 +313,141 @@ export async function generateAmericanoFinalRound(tournamentId: string) {
   }
 
   revalidatePath(`/admin/tournaments/${tournamentId}`);
+}
+
+// ── CSV Import ────────────────────────────────────────────
+
+export async function importCsvData(
+  tournamentId: string,
+  formData: FormData
+): Promise<{ success?: boolean; error?: string; playerCount?: number; matchCount?: number }> {
+  const csvText = formData.get("csv") as string;
+  if (!csvText?.trim()) return { error: "Brak danych CSV" };
+
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { pointsToWin: true },
+  });
+  if (!tournament) return { error: "Turniej nie istnieje" };
+
+  function parsePair(str: string): string[] {
+    return str.split("/").map((s) => s.trim()).filter(Boolean);
+  }
+
+  const lines = csvText
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !/^runda/i.test(l));
+
+  const parsedRows: {
+    round: number;
+    pair1: string[];
+    score1: number;
+    pair2: string[];
+    score2: number;
+    pauza: string | null;
+  }[] = [];
+
+  const playerNames = new Set<string>();
+
+  for (const line of lines) {
+    const cols = line.split(";");
+    if (cols.length < 5) continue;
+    const round = parseInt(cols[0]);
+    if (isNaN(round)) continue;
+    const pair1 = parsePair(cols[1]);
+    const score1 = parseInt(cols[2]);
+    const pair2 = parsePair(cols[3]);
+    const score2 = parseInt(cols[4]);
+    const pauza = cols[5]?.trim() || null;
+    if (pair1.length < 2 || pair2.length < 2) continue;
+    if (isNaN(score1) || isNaN(score2)) continue;
+    pair1.forEach((n) => playerNames.add(n));
+    pair2.forEach((n) => playerNames.add(n));
+    if (pauza) playerNames.add(pauza);
+    parsedRows.push({ round, pair1, score1, pair2, score2, pauza });
+  }
+
+  if (parsedRows.length === 0) return { error: "Nie znaleziono poprawnych wierszy danych" };
+
+  // Find or create players
+  const playerIdMap = new Map<string, string>();
+  for (const name of playerNames) {
+    let player = await prisma.player.findFirst({
+      where: { name: { equals: name, mode: "insensitive" } },
+    });
+    if (!player) player = await prisma.player.create({ data: { name } });
+    playerIdMap.set(name, player.id);
+  }
+
+  // Find or create individual teams + ranking entries
+  const individualTeamMap = new Map<string, string>(); // playerId -> teamId
+  for (const [, playerId] of playerIdMap) {
+    let team = await prisma.team.findFirst({
+      where: { tournamentId, player1Id: playerId, player2Id: null },
+    });
+    if (!team) team = await prisma.team.create({ data: { tournamentId, player1Id: playerId } });
+    individualTeamMap.set(playerId, team.id);
+    await prisma.rankingEntry.upsert({
+      where: { tournamentId_teamId: { tournamentId, teamId: team.id } },
+      create: { tournamentId, teamId: team.id },
+      update: {},
+    });
+  }
+
+  const byeCreated = new Set<string>();
+
+  for (const row of parsedRows) {
+    const p1id1 = playerIdMap.get(row.pair1[0])!;
+    const p1id2 = playerIdMap.get(row.pair1[1])!;
+    const p2id1 = playerIdMap.get(row.pair2[0])!;
+    const p2id2 = playerIdMap.get(row.pair2[1])!;
+
+    const team1 = await prisma.team.create({
+      data: { tournamentId, player1Id: p1id1, player2Id: p1id2 },
+    });
+    const team2 = await prisma.team.create({
+      data: { tournamentId, player1Id: p2id1, player2Id: p2id2 },
+    });
+    const match = await prisma.match.create({
+      data: { tournamentId, team1Id: team1.id, team2Id: team2.id, round: row.round, status: "completed" },
+    });
+    await prisma.set.create({
+      data: { matchId: match.id, setNumber: 1, team1Score: row.score1, team2Score: row.score2 },
+    });
+
+    if (row.pauza) {
+      const pPlayerId = playerIdMap.get(row.pauza);
+      const key = `${row.round}_${pPlayerId}`;
+      if (pPlayerId && !byeCreated.has(key)) {
+        byeCreated.add(key);
+        const indivTeamId = individualTeamMap.get(pPlayerId)!;
+        const byeMatch = await prisma.match.create({
+          data: {
+            tournamentId,
+            team1Id: indivTeamId,
+            team2Id: indivTeamId,
+            round: row.round,
+            group: "bye",
+            status: "completed",
+          },
+        });
+        await prisma.set.create({
+          data: {
+            matchId: byeMatch.id,
+            setNumber: 1,
+            team1Score: Math.ceil(tournament.pointsToWin / 2),
+            team2Score: 0,
+          },
+        });
+      }
+    }
+  }
+
+  await recalculateAmericanoRanking(tournamentId);
+  revalidatePath(`/admin/tournaments/${tournamentId}`);
+  revalidatePath("/ranking");
+  return { success: true, playerCount: playerNames.size, matchCount: parsedRows.length };
 }

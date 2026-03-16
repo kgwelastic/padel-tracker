@@ -31,6 +31,37 @@ interface CourtMatchCardProps {
   pointsToWin: number;
 }
 
+function PlayerPin({
+  cx, cy, name, color,
+}: {
+  cx: number; cy: number; name: string; color: string;
+}) {
+  const parts = name.trim().split(" ");
+  const abbr = parts.map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase();
+  const firstName = parts[0] ?? "";
+  const lastName = parts.slice(1).join(" ");
+  const lastNameShort = lastName.length > 11 ? lastName.slice(0, 10) + "…" : lastName;
+  const labelH = lastName ? 26 : 16;
+
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={22} fill={color} />
+      <text x={cx} y={cy + 5} textAnchor="middle" fill="white" fontSize="13" fontWeight="bold">
+        {abbr}
+      </text>
+      <rect x={cx - 37} y={cy + 24} width={74} height={labelH} rx="4" fill="rgba(0,0,0,0.55)" />
+      <text x={cx} y={cy + 35} textAnchor="middle" fill="white" fontSize="10" fontWeight="600">
+        {firstName}
+      </text>
+      {lastName && (
+        <text x={cx} y={cy + 46} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize="9.5">
+          {lastNameShort}
+        </text>
+      )}
+    </g>
+  );
+}
+
 function PadelCourtSVG({
   t1p1, t1p2, t2p1, t2p2,
   t1Score, t2Score,
@@ -43,111 +74,64 @@ function PadelCourtSVG({
 }) {
   const t1Win = completed && t1Score > t2Score;
   const t2Win = completed && t2Score > t1Score;
+  const c1 = t1Win ? "#22c55e" : "#3b82f6";
+  const c2 = t2Win ? "#22c55e" : "#ef4444";
 
   return (
-    <svg
-      viewBox="0 0 480 230"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-full"
-      aria-hidden="true"
-    >
-      {/* Outer background */}
-      <rect width="480" height="230" fill="#0f3d1f" rx="8" />
+    <svg viewBox="0 0 480 236" xmlns="http://www.w3.org/2000/svg" className="w-full" aria-hidden="true">
+      {/* Background */}
+      <rect width="480" height="236" fill="#0d3318" rx="8" />
 
       {/* Court surface */}
-      <rect x="22" y="14" width="436" height="202" fill="#1e6e46" rx="3" />
+      <rect x="20" y="12" width="440" height="212" fill="#1b6b41" rx="3" />
 
-      {/* Glass walls - ends */}
-      <rect x="22" y="14" width="38" height="202" fill="#27885a" opacity="0.5" />
-      <rect x="420" y="14" width="38" height="202" fill="#27885a" opacity="0.5" />
+      {/* Glass back walls (ends) */}
+      <rect x="20" y="12" width="42" height="212" fill="#2a8a55" opacity="0.55" />
+      <rect x="418" y="12" width="42" height="212" fill="#2a8a55" opacity="0.55" />
 
-      {/* Boundary lines */}
-      <rect x="22" y="14" width="436" height="202" fill="none" stroke="white" strokeWidth="2" rx="3" />
+      {/* Court boundary */}
+      <rect x="20" y="12" width="440" height="212" fill="none" stroke="white" strokeWidth="2" rx="3" />
 
-      {/* Service lines - left side */}
-      <line x1="148" y1="14" x2="148" y2="216" stroke="white" strokeWidth="1.5" opacity="0.8" />
-      <line x1="22" y1="115" x2="148" y2="115" stroke="white" strokeWidth="1.5" opacity="0.8" />
-
-      {/* Service lines - right side */}
-      <line x1="332" y1="14" x2="332" y2="216" stroke="white" strokeWidth="1.5" opacity="0.8" />
-      <line x1="332" y1="115" x2="458" y2="115" stroke="white" strokeWidth="1.5" opacity="0.8" />
+      {/* ── Padel service lines ── */}
+      {/* Service lines at ~30% from net (3m of 10m half-court) */}
+      {/* Left service line: x = 240 - 440/2*0.3 = 240-66 = 174 */}
+      <line x1="174" y1="12" x2="174" y2="224" stroke="white" strokeWidth="1.5" opacity="0.75" />
+      {/* Right service line */}
+      <line x1="306" y1="12" x2="306" y2="224" stroke="white" strokeWidth="1.5" opacity="0.75" />
+      {/* Center service lines (net to service line, perpendicular) */}
+      <line x1="174" y1="118" x2="240" y2="118" stroke="white" strokeWidth="1.5" opacity="0.75" />
+      <line x1="240" y1="118" x2="306" y2="118" stroke="white" strokeWidth="1.5" opacity="0.75" />
 
       {/* Net shadow */}
-      <line x1="240" y1="14" x2="240" y2="216" stroke="white" strokeWidth="4" opacity="0.15" />
+      <line x1="240" y1="12" x2="240" y2="224" stroke="white" strokeWidth="5" opacity="0.12" />
       {/* Net */}
-      <line x1="240" y1="14" x2="240" y2="216" stroke="white" strokeWidth="2.5" />
-      {/* Net mesh effect */}
-      <line x1="240" y1="14" x2="240" y2="216" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="5,5" opacity="0.4" />
+      <line x1="240" y1="12" x2="240" y2="224" stroke="white" strokeWidth="2.5" />
+      {/* Net dashes */}
+      <line x1="240" y1="12" x2="240" y2="224" stroke="#d1fae5" strokeWidth="1" strokeDasharray="5,5" opacity="0.35" />
       {/* Net posts */}
-      <rect x="236" y="10" width="8" height="8" rx="2" fill="white" />
-      <rect x="236" y="212" width="8" height="8" rx="2" fill="white" />
+      <rect x="236" y="8" width="8" height="8" rx="2" fill="white" />
+      <rect x="236" y="220" width="8" height="8" rx="2" fill="white" />
 
-      {/* ── Team 1 players (left side, blue) ── */}
-      {/* Player 1 - upper left */}
-      <circle cx="90" cy="72" r="20" fill={t1Win ? "#22c55e" : "#3b82f6"} opacity="0.95" />
-      <text x="90" y="78" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
-        {initials(t1p1)}
-      </text>
-      <text x="90" y="100" textAnchor="middle" fill="white" fontSize="9.5" opacity="0.95">
-        {shortName(t1p1)}
-      </text>
+      {/* ── Team 1 (left back court) ── */}
+      <PlayerPin cx={88} cy={72} name={t1p1} color={c1} />
+      {t1p2 && <PlayerPin cx={88} cy={160} name={t1p2} color={c1} />}
 
-      {/* Player 2 - lower left */}
-      {t1p2 && (
-        <>
-          <circle cx="90" cy="158" r="20" fill={t1Win ? "#22c55e" : "#3b82f6"} opacity="0.95" />
-          <text x="90" y="164" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
-            {initials(t1p2)}
-          </text>
-          <text x="90" y="186" textAnchor="middle" fill="white" fontSize="9.5" opacity="0.95">
-            {shortName(t1p2)}
-          </text>
-        </>
-      )}
+      {/* ── Team 2 (right back court) ── */}
+      <PlayerPin cx={392} cy={72} name={t2p1} color={c2} />
+      {t2p2 && <PlayerPin cx={392} cy={160} name={t2p2} color={c2} />}
 
-      {/* ── Team 2 players (right side, red/orange) ── */}
-      {/* Player 1 - upper right */}
-      <circle cx="390" cy="72" r="20" fill={t2Win ? "#22c55e" : "#ef4444"} opacity="0.95" />
-      <text x="390" y="78" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
-        {initials(t2p1)}
-      </text>
-      <text x="390" y="100" textAnchor="middle" fill="white" fontSize="9.5" opacity="0.95">
-        {shortName(t2p1)}
-      </text>
-
-      {/* Player 2 - lower right */}
-      {t2p2 && (
-        <>
-          <circle cx="390" cy="158" r="20" fill={t2Win ? "#22c55e" : "#ef4444"} opacity="0.95" />
-          <text x="390" y="164" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
-            {initials(t2p2)}
-          </text>
-          <text x="390" y="186" textAnchor="middle" fill="white" fontSize="9.5" opacity="0.95">
-            {shortName(t2p2)}
-          </text>
-        </>
-      )}
-
-      {/* Score / vs badge at net */}
+      {/* Score / vs badge */}
       {completed ? (
         <>
-          <rect x="186" y="95" width="108" height="40" rx="8" fill="rgba(0,0,0,0.65)" />
-          <text
-            x="240"
-            y="122"
-            textAnchor="middle"
-            fill="#fbbf24"
-            fontSize="22"
-            fontWeight="bold"
-            fontFamily="monospace"
-          >
+          <rect x="183" y="96" width="114" height="44" rx="8" fill="rgba(0,0,0,0.68)" />
+          <text x="240" y="125" textAnchor="middle" fill="#fbbf24" fontSize="24" fontWeight="bold" fontFamily="monospace">
             {t1Score}–{t2Score}
           </text>
         </>
       ) : (
         <>
-          <rect x="206" y="100" width="68" height="30" rx="6" fill="rgba(0,0,0,0.45)" />
-          <text x="240" y="120" textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="14" fontWeight="bold">
+          <rect x="205" y="102" width="70" height="32" rx="7" fill="rgba(0,0,0,0.42)" />
+          <text x="240" y="123" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="15" fontWeight="bold">
             vs
           </text>
         </>
