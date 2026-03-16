@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -7,7 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// NextAuth models
+// ── NextAuth ──────────────────────────────────────────────
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -21,8 +21,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -49,12 +48,12 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  role          String    @default("viewer") // "admin" | "viewer"
+  role          String    @default("viewer")
   accounts      Account[]
   sessions      Session[]
 }
 
-// Padel tournament models
+// ── Domain ────────────────────────────────────────────────
 model Player {
   id        String   @id @default(cuid())
   name      String
@@ -62,9 +61,24 @@ model Player {
   phone     String?
   createdAt DateTime @default(now())
 
-  matchesAsPlayer1 Match[]         @relation("Player1")
-  matchesAsPlayer2 Match[]         @relation("Player2")
-  rankingEntries   RankingEntry[]
+  teamsAsPlayer1 Team[] @relation("TeamPlayer1")
+  teamsAsPlayer2 Team[] @relation("TeamPlayer2")
+}
+
+// Team = singiel (1 gracz) lub debel (2 graczy)
+model Team {
+  id           String  @id @default(cuid())
+  tournamentId String
+  name         String? // opcjonalna własna nazwa dla debla
+  player1Id    String
+  player2Id    String? // null → singiel
+
+  tournament     Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player1        Player         @relation("TeamPlayer1", fields: [player1Id], references: [id])
+  player2        Player?        @relation("TeamPlayer2", fields: [player2Id], references: [id])
+  matchesAsTeam1 Match[]        @relation("MatchTeam1")
+  matchesAsTeam2 Match[]        @relation("MatchTeam2")
+  rankingEntries RankingEntry[]
 }
 
 model Tournament {
@@ -73,48 +87,57 @@ model Tournament {
   date      DateTime
   location  String?
   notes     String?
+  // Format gry
+  format    String   @default("singles")      // "singles" | "doubles"
+  // System rozgrywek
+  system    String   @default("round_robin")  // "round_robin" | "americano" | "groups_playoff" | "elimination"
+  groups    Int      @default(1)              // liczba grup (dla groups_playoff)
   createdAt DateTime @default(now())
 
-  matches      Match[]
+  matches        Match[]
   rankingEntries RankingEntry[]
+  teams          Team[]
 }
 
 model Match {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   tournamentId String
-  player1Id    String
-  player2Id    String
-  round        String?    // e.g. "Grupa A", "Półfinał", "Finał"
-  createdAt    DateTime   @default(now())
+  team1Id      String
+  team2Id      String
+  round        Int?     // numer rundy (1, 2, 3…)
+  group        String?  // nazwa grupy (A, B, C…) dla groups_playoff
+  status       String   @default("pending") // "pending" | "completed"
+  createdAt    DateTime @default(now())
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  player1    Player     @relation("Player1", fields: [player1Id], references: [id])
-  player2    Player     @relation("Player2", fields: [player2Id], references: [id])
+  team1      Team       @relation("MatchTeam1", fields: [team1Id], references: [id])
+  team2      Team       @relation("MatchTeam2", fields: [team2Id], references: [id])
   sets       Set[]
 }
 
 model Set {
-  id            String @id @default(cuid())
-  matchId       String
-  setNumber     Int
-  player1Score  Int
-  player2Score  Int
+  id           String @id @default(cuid())
+  matchId      String
+  setNumber    Int
+  team1Score   Int
+  team2Score   Int
 
   match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
 }
 
 model RankingEntry {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   tournamentId String
-  playerId     String
-  points       Int    @default(0)
-  wins         Int    @default(0)
-  losses       Int    @default(0)
-  setsWon      Int    @default(0)
-  setsLost     Int    @default(0)
+  teamId       String
+  group        String? // dla groups_playoff
+  points       Int     @default(0)
+  wins         Int     @default(0)
+  losses       Int     @default(0)
+  gamesWon     Int     @default(0)  // sety/gemy wygranych (Americano liczy gemy)
+  gamesLost    Int     @default(0)
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  player     Player     @relation(fields: [playerId], references: [id])
+  team       Team       @relation(fields: [teamId], references: [id])
 
-  @@unique([tournamentId, playerId])
+  @@unique([tournamentId, teamId])
 }
