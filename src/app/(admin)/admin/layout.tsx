@@ -39,6 +39,12 @@ export default async function AdminLayout({
           >
             Gracze
           </Link>
+          <Link
+            href="/admin/admins"
+            className="px-3 py-2 rounded-lg hover:bg-gray-800 text-sm font-medium"
+          >
+            Admini
+          </Link>
         </nav>
         <div className="px-4 py-4 border-t border-gray-700 flex flex-col gap-2">
           <Link
