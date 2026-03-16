@@ -127,6 +127,42 @@ export function generateElimination(teamCount: number): GeneratedMatch[] {
   return matches;
 }
 
+// ── Americano pair generation ────────────────────────────
+// Given active player IDs and a history of used partnerships,
+// returns an array of [player1, player2] pairs (length = activePlayerIds.length / 2).
+// Consecutive pairs form matches: pairs[0] vs pairs[1], pairs[2] vs pairs[3], …
+// Tries to avoid repeating partnerships; falls back to minimum-repeat solution.
+export function generateAmericanoPairs(
+  activePlayerIds: string[], // length must be divisible by 4
+  usedPairKeys: Set<string>  // each key = sorted IDs joined with "|"
+): Array<[string, string]> {
+  const n = activePlayerIds.length;
+  let bestPairs: Array<[string, string]> = [];
+  let bestRepeats = Infinity;
+
+  for (let attempt = 0; attempt < 150; attempt++) {
+    const shuffled = [...activePlayerIds].sort(() => Math.random() - 0.5);
+    const pairs: Array<[string, string]> = [];
+    let repeats = 0;
+
+    for (let i = 0; i < n; i += 2) {
+      const a = shuffled[i];
+      const b = shuffled[i + 1];
+      const key = [a, b].sort().join("|");
+      if (usedPairKeys.has(key)) repeats++;
+      pairs.push([a, b]);
+    }
+
+    if (repeats < bestRepeats) {
+      bestRepeats = repeats;
+      bestPairs = pairs;
+    }
+    if (repeats === 0) break;
+  }
+
+  return bestPairs;
+}
+
 // ── Helpers ───────────────────────────────────────────────
 function splitIntoGroups(teamCount: number, groupCount: number): number[][] {
   const groups: number[][] = Array.from({ length: groupCount }, () => []);

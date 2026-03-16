@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { createTournamentWithMatches, type CreateTournamentInput, type ParticipantInput } from "./actions";
 
 type Player = { id: string; name: string };
-
 type Step = 1 | 2 | 3 | 4;
 
 const SYSTEMS = [
@@ -18,7 +17,7 @@ const SYSTEMS = [
   {
     value: "americano",
     label: "Americano",
-    desc: "Pary rotują co rundę. Liczy się suma gemów każdego gracza.",
+    desc: "Pary losowane co rundę. Ranking indywidualny po punktach.",
     icon: "🔄",
   },
   {
@@ -40,25 +39,35 @@ export function TournamentWizard({ players }: { players: Player[] }) {
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
 
-  // Step 1: basic info
+  // Step 1
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Step 2: format + system
+  // Step 2
   const [format, setFormat] = useState<"singles" | "doubles">("singles");
   const [system, setSystem] = useState<CreateTournamentInput["system"]>("round_robin");
   const [groupCount, setGroupCount] = useState(2);
+  const [courts, setCourts] = useState(2);
+  const [pointsToWin, setPointsToWin] = useState(21);
 
-  // Step 3: participants
-  const [singles, setSingles] = useState<string[]>([]); // player IDs
+  // Step 3
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [teams, setTeams] = useState<{ p1: string; p2: string; name: string }[]>([]);
 
-  const participantCount = format === "singles" ? singles.length : teams.length;
+  const isAmericano = system === "americano";
 
-  function toggleSingles(id: string) {
-    setSingles((prev) =>
+  // For Americano and singles: use selectedPlayerIds
+  // For doubles: use teams
+  const participantCount = isAmericano
+    ? selectedPlayerIds.length
+    : format === "singles"
+    ? selectedPlayerIds.length
+    : teams.length;
+
+  function togglePlayer(id: string) {
+    setSelectedPlayerIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
@@ -75,27 +84,38 @@ export function TournamentWizard({ players }: { players: Player[] }) {
     setTeams((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  const usedPlayers = teams.flatMap((t) => [t.p1, t.p2]).filter(Boolean);
+  const availableForTeam = (teamIdx: number, slot: "p1" | "p2") =>
+    players.filter(
+      (p) => !usedPlayers.includes(p.id) || teams[teamIdx][slot] === p.id
+    );
+
   async function handleSubmit() {
     setLoading(true);
     try {
-      const participants: ParticipantInput[] =
-        format === "singles"
-          ? singles.map((id) => ({ type: "singles", playerId: id }))
-          : teams.map((t) => ({
-              type: "doubles",
-              player1Id: t.p1,
-              player2Id: t.p2,
-              name: t.name || undefined,
-            }));
+      let participants: ParticipantInput[];
+
+      if (isAmericano || format === "singles") {
+        participants = selectedPlayerIds.map((id) => ({ type: "singles", playerId: id }));
+      } else {
+        participants = teams.map((t) => ({
+          type: "doubles",
+          player1Id: t.p1,
+          player2Id: t.p2,
+          name: t.name || undefined,
+        }));
+      }
 
       const id = await createTournamentWithMatches({
         name,
         date,
         location: location || undefined,
         notes: notes || undefined,
-        format,
+        format: isAmericano ? "doubles" : format,
         system,
         groups: system === "groups_playoff" ? groupCount : 1,
+        courts: isAmericano ? courts : 1,
+        pointsToWin: isAmericano ? pointsToWin : 21,
         participants,
       });
       router.push(`/admin/tournaments/${id}`);
@@ -104,13 +124,10 @@ export function TournamentWizard({ players }: { players: Player[] }) {
     }
   }
 
-  const usedPlayers = teams.flatMap((t) => [t.p1, t.p2]).filter(Boolean);
-  const availableForTeam = (teamIdx: number, slot: "p1" | "p2") =>
-    players.filter(
-      (p) =>
-        !usedPlayers.includes(p.id) ||
-        teams[teamIdx][slot] === p.id
-    );
+  const matchesPerRound =
+    isAmericano
+      ? Math.floor(Math.min(courts * 4, participantCount) / 4)
+      : null;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -129,7 +146,9 @@ export function TournamentWizard({ players }: { players: Player[] }) {
             >
               {step > s ? "✓" : s}
             </div>
-            {s < 4 && <div className={`h-0.5 w-12 ${step > s ? "bg-green-500" : "bg-gray-200"}`} />}
+            {s < 4 && (
+              <div className={`h-0.5 w-12 ${step > s ? "bg-green-500" : "bg-gray-200"}`} />
+            )}
           </div>
         ))}
         <span className="ml-2 text-sm text-gray-500">
@@ -192,27 +211,32 @@ export function TournamentWizard({ players }: { players: Player[] }) {
         <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-6">
           <h2 className="font-semibold text-lg text-gray-800">Format i system gry</h2>
 
-          <div>
-            <p className="text-xs font-medium text-gray-600 mb-2">Format gry</p>
-            <div className="grid grid-cols-2 gap-3">
-              {(["singles", "doubles"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFormat(f)}
-                  className={`p-4 rounded-xl border-2 text-left transition-colors ${
-                    format === f ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <p className="font-semibold text-sm">
-                    {f === "singles" ? "Singiel" : "Debel"}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {f === "singles" ? "1 gracz vs 1 gracz" : "Para vs para (2 vs 2)"}
-                  </p>
-                </button>
-              ))}
+          {/* Format — only shown for non-Americano */}
+          {!isAmericano && (
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-2">Format gry</p>
+              <div className="grid grid-cols-2 gap-3">
+                {(["singles", "doubles"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFormat(f)}
+                    className={`p-4 rounded-xl border-2 text-left transition-colors ${
+                      format === f
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="font-semibold text-sm">
+                      {f === "singles" ? "Singiel" : "Debel"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {f === "singles" ? "1 gracz vs 1 gracz" : "Para vs para (2 vs 2)"}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <p className="text-xs font-medium text-gray-600 mb-2">System rozgrywek</p>
@@ -222,7 +246,9 @@ export function TournamentWizard({ players }: { players: Player[] }) {
                   key={s.value}
                   onClick={() => setSystem(s.value)}
                   className={`p-4 rounded-xl border-2 text-left transition-colors ${
-                    system === s.value ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                    system === s.value
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -237,25 +263,73 @@ export function TournamentWizard({ players }: { players: Player[] }) {
             </div>
           </div>
 
+          {/* Groups count — for groups_playoff */}
           {system === "groups_playoff" && (
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Liczba grup
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Liczba grup</label>
               <select
                 value={groupCount}
                 onChange={(e) => setGroupCount(Number(e.target.value))}
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {[2, 3, 4].map((n) => (
-                  <option key={n} value={n}>{n} grupy</option>
+                  <option key={n} value={n}>
+                    {n} grupy
+                  </option>
                 ))}
               </select>
             </div>
           )}
 
+          {/* Americano settings */}
+          {isAmericano && (
+            <div className="bg-blue-50 rounded-xl p-4 flex flex-col gap-4">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                Ustawienia Americano
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Liczba kortów *
+                  </label>
+                  <select
+                    value={courts}
+                    onChange={(e) => setCourts(Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>
+                        {n} {n === 1 ? "kort" : n < 5 ? "korty" : "kortów"}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {courts * 4} graczy aktywnych / rundę
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Punkty do wygrania *
+                  </label>
+                  <input
+                    type="number"
+                    value={pointsToWin}
+                    onChange={(e) => setPointsToWin(Number(e.target.value))}
+                    min={5}
+                    max={100}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Suma punktów na mecz</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 justify-between">
-            <button onClick={() => setStep(1)} className="px-4 py-2 text-gray-600 text-sm hover:underline">
+            <button
+              onClick={() => setStep(1)}
+              className="px-4 py-2 text-gray-600 text-sm hover:underline"
+            >
               ← Wstecz
             </button>
             <button
@@ -272,38 +346,63 @@ export function TournamentWizard({ players }: { players: Player[] }) {
       {step === 3 && (
         <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col gap-4">
           <h2 className="font-semibold text-lg text-gray-800">
-            {format === "singles" ? "Wybierz graczy" : "Utwórz pary (debel)"}
+            {isAmericano
+              ? "Wybierz uczestników"
+              : format === "singles"
+              ? "Wybierz graczy"
+              : "Utwórz pary (debel)"}
           </h2>
 
-          {format === "singles" ? (
+          {/* Individual player selection: singles OR americano */}
+          {(isAmericano || format === "singles") && (
             <div>
               <p className="text-xs text-gray-500 mb-3">
-                Zaznacz graczy biorących udział w turnieju ({singles.length} wybranych)
+                {isAmericano
+                  ? `Zaznacz uczestników turnieju (${selectedPlayerIds.length} wybranych). Pary będą losowane automatycznie.`
+                  : `Zaznacz graczy biorących udział (${selectedPlayerIds.length} wybranych).`}
               </p>
+              {isAmericano && selectedPlayerIds.length > 0 && selectedPlayerIds.length < courts * 4 && (
+                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                  Minimum {courts * 4} graczy dla {courts} {courts === 1 ? "kortu" : "kortów"}.
+                  Aktualnie: {selectedPlayerIds.length}. Możliwa jest gra z mniejszą liczbą (kto nie gra — pauzuje).
+                </div>
+              )}
+              {isAmericano && selectedPlayerIds.length >= 4 && selectedPlayerIds.length % 4 !== 0 && (
+                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+                  {selectedPlayerIds.length % 4} gracz
+                  {selectedPlayerIds.length % 4 === 1 ? "" : "e"} będzie pauzować w każdej rundzie (rotacja).
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">
                 {players.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => toggleSingles(p.id)}
+                    onClick={() => togglePlayer(p.id)}
                     className={`px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
-                      singles.includes(p.id)
+                      selectedPlayerIds.includes(p.id)
                         ? "border-blue-600 bg-blue-50 font-medium"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    {singles.includes(p.id) && <span className="text-blue-600 mr-1">✓</span>}
+                    {selectedPlayerIds.includes(p.id) && (
+                      <span className="text-blue-600 mr-1">✓</span>
+                    )}
                     {p.name}
                   </button>
                 ))}
               </div>
             </div>
-          ) : (
+          )}
+
+          {/* Team builder: doubles (non-Americano) */}
+          {!isAmericano && format === "doubles" && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs text-gray-500">
-                Utwórz pary debla ({teams.length} par)
-              </p>
+              <p className="text-xs text-gray-500">Utwórz pary debla ({teams.length} par)</p>
               {teams.map((team, i) => (
-                <div key={i} className="border border-gray-200 rounded-xl p-3 flex flex-col gap-2">
+                <div
+                  key={i}
+                  className="border border-gray-200 rounded-xl p-3 flex flex-col gap-2"
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-gray-500">Para {i + 1}</span>
                     <button
@@ -321,7 +420,9 @@ export function TournamentWizard({ players }: { players: Player[] }) {
                     >
                       <option value="">Gracz 1...</option>
                       {availableForTeam(i, "p1").map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
                       ))}
                     </select>
                     <select
@@ -331,7 +432,9 @@ export function TournamentWizard({ players }: { players: Player[] }) {
                     >
                       <option value="">Gracz 2...</option>
                       {availableForTeam(i, "p2").map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -353,11 +456,14 @@ export function TournamentWizard({ players }: { players: Player[] }) {
           )}
 
           <div className="flex gap-3 justify-between">
-            <button onClick={() => setStep(2)} className="px-4 py-2 text-gray-600 text-sm hover:underline">
+            <button
+              onClick={() => setStep(2)}
+              className="px-4 py-2 text-gray-600 text-sm hover:underline"
+            >
               ← Wstecz
             </button>
             <button
-              disabled={participantCount < 2}
+              disabled={participantCount < (isAmericano ? 4 : 2)}
               onClick={() => setStep(4)}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors"
             >
@@ -373,45 +479,65 @@ export function TournamentWizard({ players }: { players: Player[] }) {
           <h2 className="font-semibold text-lg text-gray-800">Podsumowanie</h2>
 
           <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Turniej</span>
-              <span className="font-medium">{name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Data</span>
-              <span className="font-medium">{new Date(date).toLocaleDateString("pl-PL")}</span>
-            </div>
-            {location && (
-              <div className="flex justify-between">
-                <span className="text-gray-500">Miejsce</span>
-                <span className="font-medium">{location}</span>
-              </div>
+            <Row label="Turniej" value={name} />
+            <Row
+              label="Data"
+              value={new Date(date).toLocaleDateString("pl-PL")}
+            />
+            {location && <Row label="Miejsce" value={location} />}
+            {isAmericano ? (
+              <>
+                <Row label="System" value="Americano (Debel)" />
+                <Row label="Korty" value={`${courts} ${courts === 1 ? "kort" : courts < 5 ? "korty" : "kortów"}`} />
+                <Row label="Punkty do wygrania" value={`${pointsToWin}`} />
+                <Row label="Uczestników" value={`${participantCount}`} />
+                {matchesPerRound !== null && matchesPerRound > 0 && (
+                  <Row
+                    label="Meczów / rundę"
+                    value={`${matchesPerRound}`}
+                    highlight
+                  />
+                )}
+                {participantCount > courts * 4 && (
+                  <Row
+                    label="Pauzuje / rundę"
+                    value={`${participantCount - courts * 4} graczy`}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <Row
+                  label="Format"
+                  value={format === "singles" ? "Singiel" : "Debel"}
+                />
+                <Row
+                  label="System"
+                  value={
+                    SYSTEMS.find((s) => s.value === system)?.label ?? system
+                  }
+                />
+                {system === "groups_playoff" && (
+                  <Row label="Grup" value={`${groupCount}`} />
+                )}
+                <Row
+                  label={format === "singles" ? "Graczy" : "Par"}
+                  value={`${participantCount}`}
+                />
+                <Row
+                  label="Meczów (wygenerowanych)"
+                  value={`${estimateMatchCount()}`}
+                  highlight
+                />
+              </>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-500">Format</span>
-              <span className="font-medium">{format === "singles" ? "Singiel" : "Debel"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">System</span>
-              <span className="font-medium">
-                {SYSTEMS.find((s) => s.value === system)?.label}
-                {system === "groups_playoff" && ` (${groupCount} grupy)`}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">
-                {format === "singles" ? "Graczy" : "Par"}
-              </span>
-              <span className="font-medium">{participantCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Meczów (wygenerowanych)</span>
-              <span className="font-bold text-blue-600">{estimateMatchCount()}</span>
-            </div>
           </div>
 
           <div className="flex gap-3 justify-between">
-            <button onClick={() => setStep(3)} className="px-4 py-2 text-gray-600 text-sm hover:underline">
+            <button
+              onClick={() => setStep(3)}
+              className="px-4 py-2 text-gray-600 text-sm hover:underline"
+            >
               ← Wstecz
             </button>
             <button
@@ -430,9 +556,30 @@ export function TournamentWizard({ players }: { players: Player[] }) {
   function estimateMatchCount(): number {
     const n = participantCount;
     if (system === "round_robin") return (n * (n - 1)) / 2;
-    if (system === "americano") return Math.floor(n / 2);
-    if (system === "groups_playoff") return Math.floor(((n / groupCount) * (n / groupCount - 1)) / 2) * groupCount;
+    if (system === "groups_playoff")
+      return (
+        Math.floor(((n / groupCount) * (n / groupCount - 1)) / 2) * groupCount
+      );
     if (system === "elimination") return n - 1;
     return 0;
   }
+}
+
+function Row({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-gray-500">{label}</span>
+      <span className={highlight ? "font-bold text-blue-600" : "font-medium"}>
+        {value}
+      </span>
+    </div>
+  );
 }

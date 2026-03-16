@@ -91,8 +91,10 @@ model Tournament {
   format    String   @default("singles")      // "singles" | "doubles"
   // System rozgrywek
   system    String   @default("round_robin")  // "round_robin" | "americano" | "groups_playoff" | "elimination"
-  groups    Int      @default(1)              // liczba grup (dla groups_playoff)
-  createdAt DateTime @default(now())
+  groups      Int      @default(1)              // liczba grup (dla groups_playoff)
+  courts      Int      @default(1)              // liczba kortów (dla americano)
+  pointsToWin Int      @default(21)             // punkty do wygrania meczu (dla americano)
+  createdAt   DateTime @default(now())
 
   matches        Match[]
   rankingEntries RankingEntry[]
