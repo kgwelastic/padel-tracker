@@ -109,6 +109,7 @@ model Match {
   team1Id      String
   team2Id      String
   round        Int?     // numer rundy (1, 2, 3…)
+  court        Int?     // numer kortu (dla americano)
   group        String?  // nazwa grupy (A, B, C…) dla groups_playoff
   status       String   @default("pending") // "pending" | "completed"
   createdAt    DateTime @default(now())

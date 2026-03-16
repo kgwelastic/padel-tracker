@@ -311,7 +311,7 @@ export default async function TournamentDetailPage({
               {/* Court cards grid for Americano / standard list for others */}
               {isAmericano ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {matches.map((m) => {
+                  {matches.map((m, index) => {
                     const t1Score = m.sets.reduce((a, s) => a + s.team1Score, 0);
                     const t2Score = m.sets.reduce((a, s) => a + s.team2Score, 0);
                     return (
@@ -327,6 +327,7 @@ export default async function TournamentDetailPage({
                         t1Score={t1Score}
                         t2Score={t2Score}
                         pointsToWin={tournament.pointsToWin}
+                        courtNumber={m.court ?? index + 1}
                       />
                     );
                   })}

@@ -29,6 +29,7 @@ interface CourtMatchCardProps {
   t1Score: number;
   t2Score: number;
   pointsToWin: number;
+  courtNumber?: number;
 }
 
 function PlayerPin({
@@ -65,12 +66,13 @@ function PlayerPin({
 function PadelCourtSVG({
   t1p1, t1p2, t2p1, t2p2,
   t1Score, t2Score,
-  completed,
+  completed, courtNumber,
 }: {
   t1p1: string; t1p2: string | null;
   t2p1: string; t2p2: string | null;
   t1Score: number; t2Score: number;
   completed: boolean;
+  courtNumber?: number;
 }) {
   const t1Win = completed && t1Score > t2Score;
   const t2Win = completed && t2Score > t1Score;
@@ -81,6 +83,16 @@ function PadelCourtSVG({
     <svg viewBox="0 0 480 236" xmlns="http://www.w3.org/2000/svg" className="w-full" aria-hidden="true">
       {/* Background */}
       <rect width="480" height="236" fill="#0d3318" rx="8" />
+
+      {/* Court number badge */}
+      {courtNumber !== undefined && (
+        <>
+          <rect x="190" y="0" width="100" height="22" rx="5" fill="rgba(0,0,0,0.65)" />
+          <text x="240" y="15" textAnchor="middle" fill="#fbbf24" fontSize="11" fontWeight="bold" letterSpacing="1">
+            KORT {courtNumber}
+          </text>
+        </>
+      )}
 
       {/* Court surface */}
       <rect x="20" y="12" width="440" height="212" fill="#1b6b41" rx="3" />
@@ -151,6 +163,7 @@ export function CourtMatchCard({
   t1Score,
   t2Score,
   pointsToWin,
+  courtNumber,
 }: CourtMatchCardProps) {
   const [s1, setS1] = useState("");
   const [s2, setS2] = useState("");
@@ -185,6 +198,7 @@ export function CourtMatchCard({
         t1Score={t1Score}
         t2Score={t2Score}
         completed={completed}
+        courtNumber={courtNumber}
       />
 
       {/* Bottom strip */}

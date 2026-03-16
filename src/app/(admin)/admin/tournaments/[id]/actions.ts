@@ -224,6 +224,7 @@ export async function generateNextAmericanoRound(tournamentId: string) {
   for (let i = 0; i < pairs.length; i += 2) {
     const [p1a, p1b] = pairs[i];
     const [p2a, p2b] = pairs[i + 1];
+    const courtNumber = i / 2 + 1;
 
     const team1 = await prisma.team.create({
       data: { tournamentId, player1Id: p1a, player2Id: p1b },
@@ -233,7 +234,7 @@ export async function generateNextAmericanoRound(tournamentId: string) {
     });
 
     await prisma.match.create({
-      data: { tournamentId, team1Id: team1.id, team2Id: team2.id, round: nextRound, status: "pending" },
+      data: { tournamentId, team1Id: team1.id, team2Id: team2.id, round: nextRound, court: courtNumber, status: "pending" },
     });
   }
 
@@ -287,6 +288,7 @@ export async function generateAmericanoFinalRound(tournamentId: string) {
   const finalRound = (maxRound._max.round ?? 0) + 1;
 
   // Pair: (rank1 + rank4) vs (rank2 + rank3), then (rank5 + rank8) vs (rank6 + rank7), …
+  let courtNumber = 1;
   for (let i = 0; i + 3 < sortedPlayers.length; i += 4) {
     const r1 = sortedPlayers[i];
     const r2 = sortedPlayers[i + 1];
@@ -306,6 +308,7 @@ export async function generateAmericanoFinalRound(tournamentId: string) {
         team1Id: team1.id,
         team2Id: team2.id,
         round: finalRound,
+        court: courtNumber++,
         group: "Final",
         status: "pending",
       },
@@ -383,6 +386,14 @@ export async function importCsvData(
 
   if (parsedRows.length === 0) return { error: "Nie znaleziono poprawnych wierszy danych" };
 
+  // Clear existing round data (keep individual player teams)
+  await prisma.match.deleteMany({ where: { tournamentId } });
+  await prisma.team.deleteMany({ where: { tournamentId, player2Id: { not: null } } });
+  await prisma.rankingEntry.updateMany({
+    where: { tournamentId },
+    data: { points: 0, wins: 0, losses: 0, gamesWon: 0, gamesLost: 0 },
+  });
+
   // Find or create players
   const playerIdMap = new Map<string, string>();
   for (const name of playerNames) {
@@ -409,12 +420,16 @@ export async function importCsvData(
   }
 
   const byeCreated = new Set<string>();
+  const roundCourtCounter = new Map<number, number>(); // round -> next court number
 
   for (const row of parsedRows) {
     const p1id1 = playerIdMap.get(row.pair1[0])!;
     const p1id2 = playerIdMap.get(row.pair1[1])!;
     const p2id1 = playerIdMap.get(row.pair2[0])!;
     const p2id2 = playerIdMap.get(row.pair2[1])!;
+
+    const courtNum = (roundCourtCounter.get(row.round) ?? 0) + 1;
+    roundCourtCounter.set(row.round, courtNum);
 
     const team1 = await prisma.team.create({
       data: { tournamentId, player1Id: p1id1, player2Id: p1id2 },
@@ -423,7 +438,7 @@ export async function importCsvData(
       data: { tournamentId, player1Id: p2id1, player2Id: p2id2 },
     });
     const match = await prisma.match.create({
-      data: { tournamentId, team1Id: team1.id, team2Id: team2.id, round: row.round, status: "completed" },
+      data: { tournamentId, team1Id: team1.id, team2Id: team2.id, round: row.round, court: courtNum, status: "completed" },
     });
     await prisma.set.create({
       data: { matchId: match.id, setNumber: 1, team1Score: row.score1, team2Score: row.score2 },
