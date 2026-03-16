@@ -95,6 +95,7 @@ module appServiceConfig 'modules/appservice-config.bicep' = {
   name: 'appservice-config-deploy'
   params: {
     appName: appService.outputs.appName
+    acrName: acr.outputs.name
     kvRefDbUrl: keyVault.outputs.refDbUrl
     kvRefNextAuth: keyVault.outputs.refNextAuth
     kvRefAdminEmail: keyVault.outputs.refAdminEmail

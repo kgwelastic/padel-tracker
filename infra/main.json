@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "11698401170136401889"
+      "templateHash": "14344089109970139896"
     }
   },
   "parameters": {
@@ -640,6 +640,9 @@
           "appName": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appservice-deploy'), '2025-04-01').outputs.appName.value]"
           },
+          "acrName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'acr-deploy'), '2025-04-01').outputs.name.value]"
+          },
           "kvRefDbUrl": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault-deploy'), '2025-04-01').outputs.refDbUrl.value]"
           },
@@ -660,11 +663,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "1428662978943368503"
+              "templateHash": "1270827644257830601"
             }
           },
           "parameters": {
             "appName": {
+              "type": "string"
+            },
+            "acrName": {
               "type": "string"
             },
             "kvRefDbUrl": {
@@ -686,16 +692,23 @@
               "apiVersion": "2023-01-01",
               "name": "[format('{0}/{1}', parameters('appName'), 'appsettings')]",
               "properties": {
+                "DOCKER_REGISTRY_SERVER_URL": "[format('https://{0}', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').loginServer)]",
+                "DOCKER_REGISTRY_SERVER_USERNAME": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').username]",
+                "DOCKER_REGISTRY_SERVER_PASSWORD": "[listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').passwords[0].value]",
                 "DATABASE_URL": "[parameters('kvRefDbUrl')]",
                 "NEXTAUTH_SECRET": "[parameters('kvRefNextAuth')]",
                 "ADMIN_EMAIL": "[parameters('kvRefAdminEmail')]",
-                "ADMIN_PASSWORD": "[parameters('kvRefAdminPass')]"
+                "ADMIN_PASSWORD": "[parameters('kvRefAdminPass')]",
+                "NEXTAUTH_URL": "[format('https://{0}.azurewebsites.net', parameters('appName'))]",
+                "NODE_ENV": "production",
+                "WEBSITES_PORT": "3000"
               }
             }
           ]
         }
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'acr-deploy')]",
         "[resourceId('Microsoft.Resources/deployments', 'appservice-deploy')]",
         "[resourceId('Microsoft.Resources/deployments', 'keyvault-deploy')]"
       ]
