@@ -1,10 +1,7 @@
 import { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   session: {
     strategy: "jwt",
   },
@@ -16,7 +13,6 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Hasło", type: "password" },
       },
       async authorize(credentials) {
-        // Simple admin check — replace with hashed password in production
         const adminEmail = process.env.ADMIN_EMAIL;
         const adminPassword = process.env.ADMIN_PASSWORD;
 
