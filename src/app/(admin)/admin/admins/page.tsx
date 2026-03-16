@@ -16,7 +16,7 @@ export default async function AdminsPage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 mb-6">
         <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Dodaj admina</h2>
         <form action={addAdmin} className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 Imię i nazwisko *

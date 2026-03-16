@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { LogoutButton } from "./LogoutButton";
 import { SessionProvider } from "./SessionProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MobileAdminNav } from "./MobileAdminNav";
 
 export default async function AdminLayout({
   children,
@@ -16,8 +17,10 @@ export default async function AdminLayout({
 
   return (
     <SessionProvider>
+      <MobileAdminNav />
       <div className="min-h-screen flex">
-        <aside className="w-56 bg-gray-900 dark:bg-gray-950 text-gray-100 flex flex-col">
+        {/* Desktop sidebar */}
+        <aside className="hidden md:flex w-56 bg-gray-900 dark:bg-gray-950 text-gray-100 flex-col flex-shrink-0">
           <div className="px-5 py-4 border-b border-gray-700 dark:border-gray-800 flex items-center justify-between">
             <span className="font-bold text-lg">Padel Admin</span>
             <ThemeToggle className="text-gray-400 hover:bg-gray-700 dark:hover:bg-gray-800" />
@@ -59,7 +62,7 @@ export default async function AdminLayout({
           </div>
         </aside>
 
-        <main className="flex-1 bg-gray-50 dark:bg-gray-900 p-8 overflow-auto">
+        <main className="flex-1 bg-gray-50 dark:bg-gray-900 p-4 md:p-8 overflow-auto pt-[4.5rem] md:pt-8">
           {children}
         </main>
       </div>

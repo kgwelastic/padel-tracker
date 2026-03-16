@@ -67,9 +67,9 @@ export default async function RankingPage() {
     .sort((a, b) => b.points - a.points || b.wins - a.wins || b.gamesWon - a.gamesWon);
 
   return (
-    <main className="max-w-4xl mx-auto p-8">
+    <main className="max-w-4xl mx-auto p-4 sm:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ranking graczy</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Ranking graczy</h1>
         <ThemeToggle />
       </div>
 
@@ -77,6 +77,7 @@ export default async function RankingPage() {
         <p className="text-gray-500 dark:text-gray-400">Brak danych rankingowych.</p>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase text-xs">
               <tr>
@@ -105,6 +106,7 @@ export default async function RankingPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </main>

@@ -197,32 +197,34 @@ export default async function TournamentDetailPage({
                 Brak wyników.
               </p>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                  <tr>
-                    <th className="px-4 py-2 text-left">#</th>
-                    <th className="px-4 py-2 text-left">Gracz</th>
-                    <th className="px-4 py-2 text-center">Pkt</th>
-                    <th className="px-4 py-2 text-center">W/P</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {individualRankings.map((e, i) => (
-                    <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-4 py-2 text-gray-400 dark:text-gray-500">{i + 1}</td>
-                      <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
-                        {e.team.player1.name}
-                      </td>
-                      <td className="px-4 py-2 text-center font-bold text-blue-600">
-                        {e.points}
-                      </td>
-                      <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
-                        {e.wins}/{e.losses}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                    <tr>
+                      <th className="px-4 py-2 text-left">#</th>
+                      <th className="px-4 py-2 text-left">Gracz</th>
+                      <th className="px-4 py-2 text-center">Pkt</th>
+                      <th className="px-4 py-2 text-center">W/P</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {individualRankings.map((e, i) => (
+                      <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-4 py-2 text-gray-400 dark:text-gray-500">{i + 1}</td>
+                        <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
+                          {e.team.player1.name}
+                        </td>
+                        <td className="px-4 py-2 text-center font-bold text-blue-600">
+                          {e.points}
+                        </td>
+                        <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
+                          {e.wins}/{e.losses}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )
           ) : (
             /* Standard: team ranking */
@@ -231,36 +233,38 @@ export default async function TournamentDetailPage({
                 Brak meczów.
               </p>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
-                  <tr>
-                    <th className="px-4 py-2 text-left">#</th>
-                    <th className="px-4 py-2 text-left">Drużyna</th>
-                    <th className="px-4 py-2 text-center">Pkt</th>
-                    <th className="px-4 py-2 text-center">W/P</th>
-                    <th className="px-4 py-2 text-center">Gemy</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {tournament.rankingEntries.map((e, i) => (
-                    <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-4 py-2 text-gray-400 dark:text-gray-500">{i + 1}</td>
-                      <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
-                        {teamLabel(e.team)}
-                      </td>
-                      <td className="px-4 py-2 text-center font-bold text-blue-600">
-                        {e.points}
-                      </td>
-                      <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
-                        {e.wins}/{e.losses}
-                      </td>
-                      <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
-                        {e.gamesWon}/{e.gamesLost}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
+                    <tr>
+                      <th className="px-4 py-2 text-left">#</th>
+                      <th className="px-4 py-2 text-left">Drużyna</th>
+                      <th className="px-4 py-2 text-center">Pkt</th>
+                      <th className="px-4 py-2 text-center">W/P</th>
+                      <th className="px-4 py-2 text-center">Gemy</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {tournament.rankingEntries.map((e, i) => (
+                      <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-4 py-2 text-gray-400 dark:text-gray-500">{i + 1}</td>
+                        <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
+                          {teamLabel(e.team)}
+                        </td>
+                        <td className="px-4 py-2 text-center font-bold text-blue-600">
+                          {e.points}
+                        </td>
+                        <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
+                          {e.wins}/{e.losses}
+                        </td>
+                        <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
+                          {e.gamesWon}/{e.gamesLost}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )
           )}
         </div>
@@ -305,39 +309,42 @@ export default async function TournamentDetailPage({
                   return (
                     <li key={m.id} className="px-4 py-3">
                       {m.status === "completed" ? (
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 text-sm">
-                            <span
-                              className={
-                                isAmericano
-                                  ? t1Score > t2Score
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 text-sm min-w-0">
+                            {/* Mobile: stacked layout */}
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-0 gap-0.5">
+                              <span
+                                className={`truncate ${
+                                  isAmericano
+                                    ? t1Score > t2Score
+                                      ? "font-bold text-green-700 dark:text-green-400"
+                                      : "text-gray-600 dark:text-gray-300"
+                                    : t1SetsWon > t2SetsWon
                                     ? "font-bold text-green-700 dark:text-green-400"
                                     : "text-gray-600 dark:text-gray-300"
-                                  : t1SetsWon > t2SetsWon
-                                  ? "font-bold text-green-700 dark:text-green-400"
-                                  : "text-gray-600 dark:text-gray-300"
-                              }
-                            >
-                              {teamLabel(m.team1)}
-                            </span>
-                            <span className="mx-2 font-mono text-gray-500 dark:text-gray-400">
-                              {isAmericano
-                                ? `${t1Score} – ${t2Score}`
-                                : m.sets.map((s) => `${s.team1Score}:${s.team2Score}`).join("  ")}
-                            </span>
-                            <span
-                              className={
-                                isAmericano
-                                  ? t2Score > t1Score
+                                }`}
+                              >
+                                {teamLabel(m.team1)}
+                              </span>
+                              <span className="font-mono text-gray-500 dark:text-gray-400 sm:mx-2 text-xs sm:text-sm">
+                                {isAmericano
+                                  ? `${t1Score} – ${t2Score}`
+                                  : m.sets.map((s) => `${s.team1Score}:${s.team2Score}`).join("  ")}
+                              </span>
+                              <span
+                                className={`truncate ${
+                                  isAmericano
+                                    ? t2Score > t1Score
+                                      ? "font-bold text-green-700 dark:text-green-400"
+                                      : "text-gray-600 dark:text-gray-300"
+                                    : t2SetsWon > t1SetsWon
                                     ? "font-bold text-green-700 dark:text-green-400"
                                     : "text-gray-600 dark:text-gray-300"
-                                  : t2SetsWon > t1SetsWon
-                                  ? "font-bold text-green-700 dark:text-green-400"
-                                  : "text-gray-600 dark:text-gray-300"
-                              }
-                            >
-                              {teamLabel(m.team2)}
-                            </span>
+                                }`}
+                              >
+                                {teamLabel(m.team2)}
+                              </span>
+                            </div>
                           </div>
                           <form
                             action={async () => {
@@ -347,7 +354,7 @@ export default async function TournamentDetailPage({
                           >
                             <button
                               type="submit"
-                              className="text-xs text-red-400 hover:text-red-600"
+                              className="text-xs text-red-400 hover:text-red-600 flex-shrink-0"
                               title="Usuń wynik"
                             >
                               ✕
