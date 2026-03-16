@@ -116,8 +116,8 @@ export default async function TournamentDetailPage({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{tournament.name}</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{tournament.name}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
             {new Date(tournament.date).toLocaleDateString("pl-PL", {
               year: "numeric",
               month: "long",
@@ -175,7 +175,7 @@ export default async function TournamentDetailPage({
         )}
 
         {isAmericano && hasFinalRound && finalRoundCompleted && (
-          <div className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
+          <div className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">
             Turniej zakończony
           </div>
         )}
@@ -183,9 +183,9 @@ export default async function TournamentDetailPage({
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Ranking */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <span className="font-semibold text-gray-800">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+            <span className="font-semibold text-gray-800 dark:text-gray-100">
               {isAmericano ? "Ranking indywidualny" : "Ranking turnieju"}
             </span>
           </div>
@@ -193,12 +193,12 @@ export default async function TournamentDetailPage({
           {isAmericano ? (
             /* Americano: individual player ranking */
             individualRankings.length === 0 ? (
-              <p className="px-5 py-6 text-sm text-gray-400 text-center">
+              <p className="px-5 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">
                 Brak wyników.
               </p>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
                   <tr>
                     <th className="px-4 py-2 text-left">#</th>
                     <th className="px-4 py-2 text-left">Gracz</th>
@@ -206,17 +206,17 @@ export default async function TournamentDetailPage({
                     <th className="px-4 py-2 text-center">W/P</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {individualRankings.map((e, i) => (
-                    <tr key={e.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-gray-400">{i + 1}</td>
-                      <td className="px-4 py-2 font-medium text-gray-800">
+                    <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-4 py-2 text-gray-400 dark:text-gray-500">{i + 1}</td>
+                      <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
                         {e.team.player1.name}
                       </td>
                       <td className="px-4 py-2 text-center font-bold text-blue-600">
                         {e.points}
                       </td>
-                      <td className="px-4 py-2 text-center text-gray-500">
+                      <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
                         {e.wins}/{e.losses}
                       </td>
                     </tr>
@@ -227,12 +227,12 @@ export default async function TournamentDetailPage({
           ) : (
             /* Standard: team ranking */
             tournament.rankingEntries.length === 0 ? (
-              <p className="px-5 py-6 text-sm text-gray-400 text-center">
+              <p className="px-5 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">
                 Brak meczów.
               </p>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase">
                   <tr>
                     <th className="px-4 py-2 text-left">#</th>
                     <th className="px-4 py-2 text-left">Drużyna</th>
@@ -241,20 +241,20 @@ export default async function TournamentDetailPage({
                     <th className="px-4 py-2 text-center">Gemy</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {tournament.rankingEntries.map((e, i) => (
-                    <tr key={e.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-gray-400">{i + 1}</td>
-                      <td className="px-4 py-2 font-medium text-gray-800">
+                    <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-4 py-2 text-gray-400 dark:text-gray-500">{i + 1}</td>
+                      <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-100">
                         {teamLabel(e.team)}
                       </td>
                       <td className="px-4 py-2 text-center font-bold text-blue-600">
                         {e.points}
                       </td>
-                      <td className="px-4 py-2 text-center text-gray-500">
+                      <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
                         {e.wins}/{e.losses}
                       </td>
-                      <td className="px-4 py-2 text-center text-gray-500">
+                      <td className="px-4 py-2 text-center text-gray-500 dark:text-gray-400">
                         {e.gamesWon}/{e.gamesLost}
                       </td>
                     </tr>
@@ -269,33 +269,33 @@ export default async function TournamentDetailPage({
         <div className="xl:col-span-2 flex flex-col gap-4">
           {/* Sitting out notice (Americano) */}
           {isAmericano && sittingOut.length > 0 && !hasFinalRound && (
-            <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-500">
+            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-500 dark:text-gray-400">
               <span className="font-medium">Pauzują w rundzie {maxRound}:</span>{" "}
               {sittingOut.map((e) => e.team.player1.name).join(", ")}
             </div>
           )}
 
           {Object.entries(grouped).map(([label, matches]) => (
-            <div key={label} className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div key={label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
               <div
-                className={`px-5 py-3 border-b border-gray-100 flex items-center justify-between ${
-                  label === "Final" ? "bg-amber-50" : "bg-gray-50"
+                className={`px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between ${
+                  label === "Final" ? "bg-amber-50 dark:bg-amber-900/20" : "bg-gray-50 dark:bg-gray-700/50"
                 }`}
               >
                 <span
                   className={`font-semibold text-sm ${
-                    label === "Final" ? "text-amber-700" : "text-gray-700"
+                    label === "Final" ? "text-amber-700 dark:text-amber-400" : "text-gray-700 dark:text-gray-200"
                   }`}
                 >
                   {label === "Final" ? "Final Round" : label}
                 </span>
                 {label === "Final" && (
-                  <span className="text-xs text-amber-600 font-medium">
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                     Pary: (1+4) vs (2+3) · (5+8) vs (6+7) · …
                   </span>
                 )}
               </div>
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                 {matches.map((m) => {
                   const t1Score = m.sets.reduce((a, s) => a + s.team1Score, 0);
                   const t2Score = m.sets.reduce((a, s) => a + s.team2Score, 0);
@@ -311,16 +311,16 @@ export default async function TournamentDetailPage({
                               className={
                                 isAmericano
                                   ? t1Score > t2Score
-                                    ? "font-bold text-green-700"
-                                    : "text-gray-600"
+                                    ? "font-bold text-green-700 dark:text-green-400"
+                                    : "text-gray-600 dark:text-gray-300"
                                   : t1SetsWon > t2SetsWon
-                                  ? "font-bold text-green-700"
-                                  : "text-gray-600"
+                                  ? "font-bold text-green-700 dark:text-green-400"
+                                  : "text-gray-600 dark:text-gray-300"
                               }
                             >
                               {teamLabel(m.team1)}
                             </span>
-                            <span className="mx-2 font-mono text-gray-500">
+                            <span className="mx-2 font-mono text-gray-500 dark:text-gray-400">
                               {isAmericano
                                 ? `${t1Score} – ${t2Score}`
                                 : m.sets.map((s) => `${s.team1Score}:${s.team2Score}`).join("  ")}
@@ -329,11 +329,11 @@ export default async function TournamentDetailPage({
                               className={
                                 isAmericano
                                   ? t2Score > t1Score
-                                    ? "font-bold text-green-700"
-                                    : "text-gray-600"
+                                    ? "font-bold text-green-700 dark:text-green-400"
+                                    : "text-gray-600 dark:text-gray-300"
                                   : t2SetsWon > t1SetsWon
-                                  ? "font-bold text-green-700"
-                                  : "text-gray-600"
+                                  ? "font-bold text-green-700 dark:text-green-400"
+                                  : "text-gray-600 dark:text-gray-300"
                               }
                             >
                               {teamLabel(m.team2)}
@@ -369,15 +369,15 @@ export default async function TournamentDetailPage({
                           action={enterMatchResult.bind(null, m.id, id)}
                           className="flex flex-col gap-2"
                         >
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
                             <span>{teamLabel(m.team1)}</span>
-                            <span className="text-gray-400">vs</span>
+                            <span className="text-gray-400 dark:text-gray-500">vs</span>
                             <span>{teamLabel(m.team2)}</span>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             {[1, 2, 3].map((n) => (
                               <div key={n} className="flex items-center gap-1">
-                                <span className="text-xs text-gray-400 w-10">Set {n}</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500 w-10">Set {n}</span>
                                 <input
                                   name={`set${n}_t1`}
                                   type="number"
@@ -386,7 +386,7 @@ export default async function TournamentDetailPage({
                                   placeholder="—"
                                   className="w-12 border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
-                                <span className="text-gray-400">:</span>
+                                <span className="text-gray-400 dark:text-gray-500">:</span>
                                 <input
                                   name={`set${n}_t2`}
                                   type="number"
@@ -414,7 +414,7 @@ export default async function TournamentDetailPage({
           ))}
 
           {tournament.matches.length === 0 && (
-            <div className="bg-white rounded-xl shadow-sm px-5 py-8 text-gray-400 text-sm text-center">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm px-5 py-8 text-gray-400 dark:text-gray-500 text-sm text-center">
               Brak meczów w tym turnieju.
             </div>
           )}

@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,12 +31,15 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-8">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-md p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Logowanie</h1>
+    <main className="min-h-screen flex items-center justify-center p-8 bg-gray-50 dark:bg-gray-900">
+      <div className="fixed top-4 right-4">
+        <ThemeToggle />
+      </div>
+      <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Logowanie</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Email
             </label>
             <input
@@ -46,7 +50,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Hasło
             </label>
             <input
@@ -56,7 +60,7 @@ export default function LoginPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>}
           <button
             type="submit"
             disabled={loading}

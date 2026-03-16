@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,6 @@ export default async function RankingPage() {
     },
   });
 
-  // Aggregate stats per player across all tournaments
   const playerMap: Record<
     string,
     {
@@ -68,14 +68,17 @@ export default async function RankingPage() {
 
   return (
     <main className="max-w-4xl mx-auto p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Ranking graczy</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ranking graczy</h1>
+        <ThemeToggle />
+      </div>
 
       {sorted.length === 0 ? (
-        <p className="text-gray-500">Brak danych rankingowych.</p>
+        <p className="text-gray-500 dark:text-gray-400">Brak danych rankingowych.</p>
       ) : (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+            <thead className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase text-xs">
               <tr>
                 <th className="px-4 py-3 text-left">#</th>
                 <th className="px-4 py-3 text-left">Gracz</th>
@@ -86,18 +89,18 @@ export default async function RankingPage() {
                 <th className="px-4 py-3 text-center">Turnieje</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {sorted.map((row, i) => (
-                <tr key={row.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-500">{i + 1}</td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">{row.name}</td>
-                  <td className="px-4 py-3 text-center font-bold text-blue-600">{row.points}</td>
-                  <td className="px-4 py-3 text-center text-green-600">{row.wins}</td>
-                  <td className="px-4 py-3 text-center text-red-500">{row.losses}</td>
-                  <td className="px-4 py-3 text-center text-gray-600">
+                <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{i + 1}</td>
+                  <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">{row.name}</td>
+                  <td className="px-4 py-3 text-center font-bold text-blue-600 dark:text-blue-400">{row.points}</td>
+                  <td className="px-4 py-3 text-center text-green-600 dark:text-green-400">{row.wins}</td>
+                  <td className="px-4 py-3 text-center text-red-500 dark:text-red-400">{row.losses}</td>
+                  <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">
                     {row.gamesWon}/{row.gamesLost}
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-500">{row.tournamentCount}</td>
+                  <td className="px-4 py-3 text-center text-gray-500 dark:text-gray-400">{row.tournamentCount}</td>
                 </tr>
               ))}
             </tbody>
