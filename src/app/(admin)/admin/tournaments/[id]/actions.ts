@@ -315,6 +315,17 @@ export async function generateAmericanoFinalRound(tournamentId: string) {
   revalidatePath(`/admin/tournaments/${tournamentId}`);
 }
 
+// ── Tournament completion ─────────────────────────────────
+
+export async function completeTournament(tournamentId: string) {
+  await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { completed: true },
+  });
+  revalidatePath(`/admin/tournaments/${tournamentId}`);
+  revalidatePath("/admin/tournaments");
+}
+
 // ── CSV Import ────────────────────────────────────────────
 
 export async function importCsvData(

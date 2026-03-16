@@ -5,6 +5,7 @@ import {
   clearMatchResult,
   generateNextAmericanoRound,
   generateAmericanoFinalRound,
+  completeTournament,
 } from "./actions";
 import { AmericanoScoreForm } from "./AmericanoScoreForm";
 import { CourtMatchCard } from "./CourtMatchCard";
@@ -76,7 +77,7 @@ export default async function TournamentDetailPage({
   const maxRound = roundNumbers.length > 0 ? Math.max(...roundNumbers) : 0;
 
   const currentRoundMatches = tournament.matches.filter(
-    (m) => m.round === maxRound && m.group !== "Final"
+    (m) => m.round === maxRound && m.group !== "Final" && m.group !== "bye"
   );
   const allCurrentCompleted =
     currentRoundMatches.length > 0 &&
@@ -87,6 +88,7 @@ export default async function TournamentDetailPage({
     tournament.matches
       .filter((m) => m.group === "Final")
       .every((m) => m.status === "completed");
+  const isCompleted = tournament.completed || finalRoundCompleted;
 
   // Players sitting out current round
   const activePlayerIdsInCurrentRound = new Set<string>();
@@ -134,51 +136,47 @@ export default async function TournamentDetailPage({
         </div>
 
         {/* Americano controls */}
-        {isAmericano && !hasFinalRound && (
+        {isAmericano && !isCompleted && (
           <div className="flex gap-2 flex-wrap items-center">
             <ImportCsvForm tournamentId={id} />
-            <form
-              action={async () => {
-                "use server";
-                await generateNextAmericanoRound(id);
-              }}
-            >
-              <button
-                type="submit"
-                disabled={!allCurrentCompleted}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-40 transition-colors"
-                title={
-                  !allCurrentCompleted
-                    ? "Najpierw wprowadź wyniki bieżącej rundy"
-                    : undefined
-                }
-              >
-                Następna runda →
-              </button>
-            </form>
-            <form
-              action={async () => {
-                "use server";
-                await generateAmericanoFinalRound(id);
-              }}
-            >
-              <button
-                type="submit"
-                disabled={!allCurrentCompleted}
-                className="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 disabled:opacity-40 transition-colors"
-                title={
-                  !allCurrentCompleted
-                    ? "Najpierw wprowadź wyniki bieżącej rundy"
-                    : undefined
-                }
-              >
-                Zakończ — Final Round
-              </button>
-            </form>
+            {!hasFinalRound && (
+              <>
+                <form action={async () => { "use server"; await generateNextAmericanoRound(id); }}>
+                  <button
+                    type="submit"
+                    disabled={!allCurrentCompleted}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-40 transition-colors"
+                    title={!allCurrentCompleted ? "Najpierw wprowadź wyniki bieżącej rundy" : undefined}
+                  >
+                    Następna runda →
+                  </button>
+                </form>
+                <form action={async () => { "use server"; await generateAmericanoFinalRound(id); }}>
+                  <button
+                    type="submit"
+                    disabled={!allCurrentCompleted}
+                    className="px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 disabled:opacity-40 transition-colors"
+                    title={!allCurrentCompleted ? "Najpierw wprowadź wyniki bieżącej rundy" : undefined}
+                  >
+                    Zakończ — Final Round
+                  </button>
+                </form>
+                <form action={async () => { "use server"; await completeTournament(id); }}>
+                  <button
+                    type="submit"
+                    disabled={!allCurrentCompleted}
+                    className="px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 disabled:opacity-40 transition-colors"
+                    title={!allCurrentCompleted ? "Najpierw wprowadź wyniki bieżącej rundy" : undefined}
+                  >
+                    Zakończ turniej
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         )}
 
-        {isAmericano && hasFinalRound && finalRoundCompleted && (
+        {isAmericano && isCompleted && (
           <div className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">
             Turniej zakończony
           </div>

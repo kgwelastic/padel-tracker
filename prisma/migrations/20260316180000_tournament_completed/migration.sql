@@ -1,0 +1,1 @@
+ALTER TABLE "Tournament" ADD COLUMN "completed" BOOLEAN NOT NULL DEFAULT false;

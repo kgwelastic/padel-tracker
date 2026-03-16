@@ -95,6 +95,7 @@ model Tournament {
   groups      Int      @default(1)              // liczba grup (dla groups_playoff)
   courts      Int      @default(1)              // liczba kortów (dla americano)
   pointsToWin Int      @default(21)             // punkty do wygrania meczu (dla americano)
+  completed   Boolean  @default(false)          // turniej zakończony (bez lub po Final Round)
   createdAt   DateTime @default(now())
 
   matches        Match[]

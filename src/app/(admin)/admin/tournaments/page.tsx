@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { deleteTournament } from "./actions";
+import { DeleteTournamentButton } from "./DeleteTournamentButton";
 
 const SYSTEM_LABELS: Record<string, string> = {
   round_robin: "Round Robin",
@@ -69,19 +69,7 @@ export default async function TournamentsPage() {
                   >
                     Wyniki →
                   </Link>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await deleteTournament(t.id);
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="text-xs text-red-500 hover:text-red-700 hover:underline"
-                    >
-                      Usuń
-                    </button>
-                  </form>
+                  <DeleteTournamentButton tournamentId={t.id} />
                 </div>
               </li>
             ))}
