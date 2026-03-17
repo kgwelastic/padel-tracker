@@ -84,6 +84,27 @@ export async function createTournamentWithMatches(input: CreateTournamentInput) 
       await createAmericanoRoundMatches(tournament.id, pairs, 1, courtNumbers);
     }
 
+    // Create bye matches for round 1 sitting-out players
+    const sittingOutIds = allPlayerIds.slice(activeCount);
+    const byePointsRound1 = Math.ceil(pointsToWin / 2);
+    for (const playerId of sittingOutIds) {
+      const indivTeam = individualTeams.find((t) => t.player1Id === playerId);
+      if (!indivTeam) continue;
+      const byeMatch = await prisma.match.create({
+        data: {
+          tournamentId: tournament.id,
+          team1Id: indivTeam.id,
+          team2Id: indivTeam.id,
+          round: 1,
+          group: "bye",
+          status: "completed",
+        },
+      });
+      await prisma.set.create({
+        data: { matchId: byeMatch.id, setNumber: 1, team1Score: byePointsRound1, team2Score: 0 },
+      });
+    }
+
     revalidatePath("/admin/tournaments");
     return tournament.id;
   }
