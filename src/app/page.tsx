@@ -26,6 +26,12 @@ export default function HomePage() {
           Turnieje
         </Link>
         <Link
+          href="/statistics"
+          className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors text-center"
+        >
+          Statystyki
+        </Link>
+        <Link
           href="/login"
           className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-center"
         >
